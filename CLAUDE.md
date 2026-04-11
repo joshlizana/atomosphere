@@ -51,6 +51,7 @@ make status    # Show container status
 make clean     # Full teardown
 make monitor   # Single health check
 make maintain  # Iceberg table maintenance (snapshot expiry + compaction)
+make smoke-test # Run acceptance test suite (waits for data, then validates all layers)
 ```
 
 ## Conventions

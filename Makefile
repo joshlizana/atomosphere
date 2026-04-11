@@ -1,4 +1,4 @@
-.PHONY: up down logs status clean monitor monitor-loop maintain reset-checkpoint replay
+.PHONY: up down logs status clean monitor monitor-loop maintain reset-checkpoint replay smoke-test
 
 up:
 	docker compose up -d --build
@@ -40,3 +40,6 @@ replay:
 	@echo "Usage: make replay TIME=<timestamp>"
 	@echo "  e.g. make replay TIME=-1h"
 	@test -n "$(TIME)" && ./scripts/replay.sh $(TIME) || true
+
+smoke-test:
+	./scripts/smoke-test.sh --wait

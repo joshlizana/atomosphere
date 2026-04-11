@@ -93,6 +93,7 @@ Once running, open Grafana at [http://localhost:3000](http://localhost:3000) to 
 | `make clean` | Full teardown (containers + volumes) |
 | `make monitor` | Single health check |
 | `make maintain` | Iceberg table maintenance |
+| `make smoke-test` | Run acceptance test suite |
 
 ## Progress
 

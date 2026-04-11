@@ -32,9 +32,9 @@ maintain:
 	./scripts/maintain.sh
 
 reset-checkpoint:
-	@echo "Usage: make reset-checkpoint SVC=<service>"
-	@echo "  e.g. make reset-checkpoint SVC=spark-staging"
-	@test -n "$(SVC)" && ./scripts/reset-checkpoint.sh $(SVC) || true
+	@echo "Usage: make reset-checkpoint LAYER=<layer>"
+	@echo "  e.g. make reset-checkpoint LAYER=staging"
+	@test -n "$(LAYER)" && ./scripts/reset-checkpoint.sh $(LAYER) || true
 
 replay:
 	@echo "Usage: make replay TIME=<timestamp>"

@@ -39,11 +39,12 @@ PARTITIONED BY (days(ingested_at), collection)
 """
 
 
-def main():
-    spark = SparkSession.builder \
-        .appName("spark-ingest") \
-        .getOrCreate()
+def start_queries(spark):
+    """Set up ingest DDL and start the streaming query.
 
+    Returns a list of started StreamingQuery objects (does not block).
+    Can be called from the unified entrypoint or from main() for standalone use.
+    """
     # Register the custom DataSource V2
     spark.dataSource.register(JetstreamDataSource)
 
@@ -68,7 +69,16 @@ def main():
         .toTable(TABLE)
 
     logger.info("Ingestion streaming query started — writing to %s", TABLE)
-    query.awaitTermination()
+    return [query]
+
+
+def main():
+    spark = SparkSession.builder \
+        .appName("spark-ingest") \
+        .getOrCreate()
+
+    queries = start_queries(spark)
+    queries[0].awaitTermination()
 
 
 if __name__ == "__main__":

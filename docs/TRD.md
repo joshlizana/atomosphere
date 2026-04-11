@@ -119,8 +119,8 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Constraint |
 |---|---|
-| C-01 | 128 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
-| C-02 | ~96 GB allocated to Docker; ~32 GB reserved for the host workstation |
+| C-01 | 32 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
+| C-02 | ~24 GB allocated to Docker; ~8 GB reserved for the host workstation |
 | C-03 | Single-node local deployment via Docker Compose |
 | C-04 | All data stored locally in RustFS within Docker volumes; 30-day retention |
 | C-05 | Three core technologies: Spark, Iceberg, Grafana |
@@ -222,8 +222,8 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Requirement | Target | Measurement |
 |---|---|---|---|
-| NFR-09 | Total memory allocation across 12 containers | ~76 GB (within 96 GB Docker budget) | Sum of container memory limits in `docker-compose.yml` |
-| NFR-10 | Host usability during pipeline runtime | ~32 GB reserved for workstation use | Available host memory while all containers are running |
+| NFR-09 | Total memory allocation across 8 containers | ~22 GB (within 24 GB Docker budget) | Sum of container memory limits in `docker-compose.yml` |
+| NFR-10 | Host usability during pipeline runtime | ~8 GB reserved for workstation use | Available host memory while all containers are running |
 
 ### 6.4 Portability
 
@@ -298,18 +298,15 @@ flowchart TD
 
 | Container | Memory | Purpose |
 |---|---|---|
-| init | 1 GB | Creates RustFS buckets, Polaris warehouse, Iceberg namespaces. Exits after setup. |
-| rustfs | 16 GB | S3-compatible object storage for Iceberg data files |
-| polaris | 2 GB | Iceberg REST catalog serving table metadata to all Spark containers |
-| postgres | 2 GB | Backing store for the Polaris catalog |
-| spark-ingest | 8 GB | Jetstream WebSocket ingestion via custom DataSource V2 |
-| spark-staging | 8 GB | Raw event parsing into typed staging tables |
-| spark-core | 10 GB | Core enrichment, mart materialization |
-| spark-sentiment | 16 GB | GPU-accelerated XLM-RoBERTa sentiment inference |
-| spark-thrift | 10 GB | JDBC query serving for Grafana |
-| grafana | 2 GB | Dashboard rendering |
-| cloudflared | 512 MB | Cloudflare Tunnel agent |
-| **Total** | **~76 GB** | |
+| init | 512 MB | Creates RustFS buckets, Polaris warehouse, Iceberg namespaces. Exits after setup. |
+| rustfs | 3 GB | S3-compatible object storage for Iceberg data files |
+| polaris | 1 GB | Iceberg REST catalog serving table metadata to Spark |
+| postgres | 1 GB | Backing store for the Polaris catalog |
+| spark-unified | 14 GB | Unified streaming pipeline: ingest + staging + core + sentiment (GPU) in one JVM |
+| spark-thrift | 2 GB | JDBC query serving for Grafana |
+| grafana | 512 MB | Dashboard rendering |
+| cloudflared | 256 MB | Cloudflare Tunnel agent |
+| **Total** | **~22.3 GB** | |
 
 ### 7.3 Network Topology
 

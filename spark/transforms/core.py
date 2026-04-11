@@ -149,11 +149,12 @@ def process_posts_batch(spark, batch_df, batch_id):
         logger.info("Batch %d: wrote %d rows to %s", batch_id, result.count(), CORE_HASHTAGS)
 
 
-def main():
-    spark = SparkSession.builder \
-        .appName("spark-core") \
-        .getOrCreate()
+def start_queries(spark):
+    """Set up core DDL, mart views, and start streaming queries.
 
+    Returns a list of started StreamingQuery objects (does not block).
+    Can be called from the unified entrypoint or from main() for standalone use.
+    """
     # --- Ensure namespaces exist ---
     spark.sql("CREATE NAMESPACE IF NOT EXISTS atmosphere.core")
     spark.sql("CREATE NAMESPACE IF NOT EXISTS atmosphere.mart")
@@ -218,6 +219,16 @@ def main():
         .toTable(CORE_ENGAGEMENT)
 
     logger.info("Engagement stream started — reading from %s + %s", STG_LIKES, STG_REPOSTS)
+
+    return [posts_query, engagement_query]
+
+
+def main():
+    spark = SparkSession.builder \
+        .appName("spark-core") \
+        .getOrCreate()
+
+    start_queries(spark)
 
     # Block until any query terminates (container restarts on failure)
     spark.streams.awaitAnyTermination()

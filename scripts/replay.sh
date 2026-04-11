@@ -20,7 +20,8 @@ set -uo pipefail
 DRY_RUN=false
 LOG_FILE="logs/replay.log"
 CURSOR_ENV_VAR="JETSTREAM_CURSOR"
-SERVICES_ORDERED=(spark-ingest spark-staging spark-core spark-sentiment)
+SERVICE="spark-unified"
+VOLUME="atmosphere_spark-checkpoints"
 
 # --- Parse args ---
 TIMESTAMP=""
@@ -103,51 +104,35 @@ fi
 
 if $DRY_RUN; then
     echo "[DRY-RUN] Would:"
-    echo "  1. Stop all streaming services"
-    echo "  2. Clear all checkpoint volumes"
-    echo "  3. Set JETSTREAM_CURSOR=$CURSOR in spark-ingest"
-    echo "  4. Restart all streaming services"
+    echo "  1. Stop $SERVICE"
+    echo "  2. Clear all checkpoint subdirectories"
+    echo "  3. Set JETSTREAM_CURSOR=$CURSOR"
+    echo "  4. Restart $SERVICE"
     exit 0
 fi
 
 log "Starting replay from $HUMAN_TIME (cursor=$CURSOR)"
 
-# --- Stop all services in reverse order ---
-echo "=== Stopping services ==="
-for (( i=${#SERVICES_ORDERED[@]}-1; i>=0; i-- )); do
-    svc=${SERVICES_ORDERED[$i]}
-    echo "  Stopping $svc..."
-    docker compose stop "$svc" 2>/dev/null
-done
+# --- Stop the unified service ---
+echo "=== Stopping $SERVICE ==="
+echo "  Stopping $SERVICE..."
+docker compose stop "$SERVICE" 2>/dev/null
 echo ""
 
 # --- Clear all checkpoints ---
 echo "=== Clearing all checkpoints ==="
-for svc in "${SERVICES_ORDERED[@]}"; do
-    volume="atmosphere_${svc}-checkpoints"
-    echo "  Clearing $volume..."
-    docker run --rm -v "${volume}:/cp" alpine sh -c 'rm -rf /cp/*' 2>/dev/null
-done
+echo "  Clearing $VOLUME..."
+docker run --rm -v "${VOLUME}:/cp" alpine sh -c 'rm -rf /cp/*' 2>/dev/null
 echo ""
 
-# --- Update cursor in docker-compose environment ---
-# We set the cursor via environment variable override
+# --- Restart with cursor ---
 echo "=== Setting replay cursor ==="
 echo "  $CURSOR_ENV_VAR=$CURSOR"
-export "$CURSOR_ENV_VAR=$CURSOR"
 echo ""
 
-# --- Restart all services with cursor ---
-echo "=== Restarting services ==="
-for svc in "${SERVICES_ORDERED[@]}"; do
-    echo "  Starting $svc..."
-    if [[ "$svc" == "spark-ingest" ]]; then
-        # Pass cursor as environment variable
-        JETSTREAM_CURSOR="$CURSOR" docker compose up -d "$svc" 2>/dev/null
-    else
-        docker compose start "$svc" 2>/dev/null
-    fi
-done
+echo "=== Restarting $SERVICE ==="
+echo "  Starting $SERVICE..."
+JETSTREAM_CURSOR="$CURSOR" docker compose up -d "$SERVICE" 2>/dev/null
 echo ""
 
 log "Replay started from $HUMAN_TIME"

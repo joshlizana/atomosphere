@@ -160,11 +160,12 @@ PARTITIONED BY (days(event_time))
 """
 
 
-def main():
-    spark = SparkSession.builder \
-        .appName("spark-sentiment") \
-        .getOrCreate()
+def start_queries(spark):
+    """Set up sentiment DDL and start the streaming query.
 
+    Returns a list of started StreamingQuery objects (does not block).
+    Can be called from the unified entrypoint or from main() for standalone use.
+    """
     # Ensure table exists (FR-25)
     logger.info("Ensuring table exists: %s", TARGET_TABLE)
     spark.sql(CREATE_TABLE_SQL)
@@ -190,7 +191,16 @@ def main():
         .toTable(TARGET_TABLE)
 
     logger.info("Sentiment streaming query started — %s → %s", SOURCE_TABLE, TARGET_TABLE)
-    query.awaitTermination()
+    return [query]
+
+
+def main():
+    spark = SparkSession.builder \
+        .appName("spark-sentiment") \
+        .getOrCreate()
+
+    queries = start_queries(spark)
+    queries[0].awaitTermination()
 
 
 if __name__ == "__main__":

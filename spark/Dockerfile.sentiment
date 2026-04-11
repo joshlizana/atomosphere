@@ -1,6 +1,7 @@
-# Dockerfile.sentiment — GPU-accelerated sentiment inference with XLM-RoBERTa
+# Dockerfile.sentiment — Unified Spark streaming image with GPU sentiment inference
 # Multi-stage: copy Spark from official image, layer onto CUDA runtime
-# Requirements: FR-11, FR-12, FR-13, FR-14, NFR-03, NFR-11
+# Runs all 4 streaming layers (ingest, staging, core, sentiment) in one process
+# Requirements: FR-01–FR-14, FR-15–FR-18, FR-25, NFR-03, NFR-09, NFR-11
 
 # --- Stage 1: Spark base (source for /opt/spark) ---
 FROM apache/spark:4.0.2-python3 AS spark-base
@@ -52,6 +53,7 @@ RUN pip install --no-cache-dir accelerate pyarrow websocket-client pandas
 
 # Copy Spark config and application code
 COPY conf/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
+COPY unified.py /opt/spark/work-dir/spark/unified.py
 COPY sources/ /opt/spark/work-dir/spark/sources/
 COPY ingestion/ /opt/spark/work-dir/spark/ingestion/
 COPY transforms/ /opt/spark/work-dir/spark/transforms/

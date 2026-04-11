@@ -158,11 +158,12 @@ def process_batch(spark, batch_df, batch_id):
             )
 
 
-def main():
-    spark = SparkSession.builder \
-        .appName("spark-staging") \
-        .getOrCreate()
+def start_queries(spark):
+    """Set up staging DDL and start the streaming query.
 
+    Returns a list of started StreamingQuery objects (does not block).
+    Can be called from the unified entrypoint or from main() for standalone use.
+    """
     # Create all staging tables on first run (FR-25)
     logger.info("Ensuring staging tables exist")
     for table, ddl in CREATE_TABLE_SQLS.items():
@@ -183,7 +184,16 @@ def main():
         .start()
 
     logger.info("Staging streaming query started — reading from %s", RAW_TABLE)
-    query.awaitTermination()
+    return [query]
+
+
+def main():
+    spark = SparkSession.builder \
+        .appName("spark-staging") \
+        .getOrCreate()
+
+    queries = start_queries(spark)
+    queries[0].awaitTermination()
 
 
 if __name__ == "__main__":

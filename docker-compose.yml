@@ -19,7 +19,7 @@ services:
       retries: 5
     networks:
       - atmosphere-data
-    mem_limit: 16g
+    mem_limit: 3g
     restart: unless-stopped
 
   postgres:
@@ -40,7 +40,7 @@ services:
       retries: 15
     networks:
       - atmosphere-data
-    mem_limit: 2g
+    mem_limit: 1g
     restart: unless-stopped
 
   polaris-bootstrap:
@@ -90,7 +90,7 @@ services:
         condition: service_completed_successfully
     networks:
       - atmosphere-data
-    mem_limit: 2g
+    mem_limit: 1g
     restart: unless-stopped
 
   # --- Init Container ---
@@ -113,20 +113,21 @@ services:
         condition: service_healthy
     networks:
       - atmosphere-data
-    mem_limit: 1g
+    mem_limit: 512m
     restart: "no"
 
-  # --- Spark Applications ---
+  # --- Spark Unified Streaming Pipeline ---
 
-  spark-ingest:
+  spark-unified:
     build:
       context: ./spark
-    container_name: spark-ingest
+      dockerfile: Dockerfile.sentiment
+    container_name: spark-unified
     command:
       - /opt/spark/bin/spark-submit
       - --master
       - local[*]
-      - /opt/spark/work-dir/spark/ingestion/ingest_raw.py
+      - /opt/spark/work-dir/spark/unified.py
     ports:
       - "4040:4040"
     environment:
@@ -135,89 +136,13 @@ services:
       AWS_REGION: us-east-1
       JETSTREAM_CURSOR: ${JETSTREAM_CURSOR:-}
     volumes:
-      - spark-ingest-checkpoints:/opt/spark/checkpoints
+      - spark-checkpoints:/opt/spark/checkpoints
     depends_on:
       init:
         condition: service_completed_successfully
     networks:
       - atmosphere-data
-    mem_limit: 8g
-    restart: unless-stopped
-
-  spark-staging:
-    build:
-      context: ./spark
-    container_name: spark-staging
-    command:
-      - /opt/spark/bin/spark-submit
-      - --master
-      - local[*]
-      - /opt/spark/work-dir/spark/transforms/staging.py
-    ports:
-      - "4041:4040"
-    environment:
-      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
-      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
-      AWS_REGION: us-east-1
-    volumes:
-      - spark-staging-checkpoints:/opt/spark/checkpoints
-    depends_on:
-      spark-ingest:
-        condition: service_started
-    networks:
-      - atmosphere-data
-    mem_limit: 8g
-    restart: unless-stopped
-
-  spark-core:
-    build:
-      context: ./spark
-    container_name: spark-core
-    command:
-      - /opt/spark/bin/spark-submit
-      - --master
-      - local[*]
-      - /opt/spark/work-dir/spark/transforms/core.py
-    ports:
-      - "4042:4040"
-    environment:
-      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
-      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
-      AWS_REGION: us-east-1
-    volumes:
-      - spark-core-checkpoints:/opt/spark/checkpoints
-    depends_on:
-      spark-staging:
-        condition: service_started
-    networks:
-      - atmosphere-data
-    mem_limit: 10g
-    restart: unless-stopped
-
-  spark-sentiment:
-    build:
-      context: ./spark
-      dockerfile: Dockerfile.sentiment
-    container_name: spark-sentiment
-    command:
-      - /opt/spark/bin/spark-submit
-      - --master
-      - local[*]
-      - /opt/spark/work-dir/spark/transforms/sentiment.py
-    ports:
-      - "4043:4040"
-    environment:
-      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
-      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
-      AWS_REGION: us-east-1
-    volumes:
-      - spark-sentiment-checkpoints:/opt/spark/checkpoints
-    depends_on:
-      spark-core:
-        condition: service_started
-    networks:
-      - atmosphere-data
-    mem_limit: 16g
+    mem_limit: 14g
     deploy:
       resources:
         reservations:
@@ -228,10 +153,7 @@ services:
 volumes:
   rustfs-data:
   postgres-data:
-  spark-ingest-checkpoints:
-  spark-staging-checkpoints:
-  spark-core-checkpoints:
-  spark-sentiment-checkpoints:
+  spark-checkpoints:
 
 networks:
   atmosphere-data:

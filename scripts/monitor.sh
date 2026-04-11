@@ -20,7 +20,7 @@ INTERVAL=30
 LOG_FILE="logs/monitor.log"
 RESTART_WINDOW=300  # 5 minutes
 MAX_RESTARTS=3
-SPARK_SQL_CONTAINER="spark-core"
+SPARK_SQL_CONTAINER="spark-unified"
 
 # Freshness SLA thresholds (seconds)
 INGEST_LAG_MAX=15
@@ -59,8 +59,8 @@ LOG_TAIL_LINES=100
 # Throughput: minimum events/sec to consider healthy
 THROUGHPUT_WINDOW=60  # seconds to measure over
 
-# Services in dependency order (upstream first)
-SERVICES=(spark-ingest spark-staging spark-core spark-sentiment)
+# Services (unified single process)
+SERVICES=(spark-unified)
 
 # --- Parse args ---
 while [[ $# -gt 0 ]]; do
@@ -203,10 +203,10 @@ check_freshness() {
         [core_post_sentiment]=$SENTIMENT_LAG_MAX
     )
     local -A service_map=(
-        [raw_events]=spark-ingest
-        [stg_posts]=spark-staging
-        [core_posts]=spark-core
-        [core_post_sentiment]=spark-sentiment
+        [raw_events]=spark-unified
+        [stg_posts]=spark-unified
+        [core_posts]=spark-unified
+        [core_post_sentiment]=spark-unified
     )
 
     local upstream_stale=false
@@ -251,7 +251,7 @@ check_gpu() {
     echo "GPU"
 
     local gpu_info
-    gpu_info=$(docker exec spark-sentiment nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null || echo "")
+    gpu_info=$(docker exec spark-unified nvidia-smi --query-gpu=name,memory.used,memory.total --format=csv,noheader,nounits 2>/dev/null || echo "")
 
     if [[ -z "$gpu_info" ]]; then
         result "gpu" WARN "not detected — running in CPU mode"
@@ -442,22 +442,25 @@ check_checkpoints() {
         return
     fi
 
-    local -A checkpoint_volumes=(
-        [spark-ingest]=spark-ingest-checkpoints
-        [spark-staging]=spark-staging-checkpoints
-        [spark-core]=spark-core-checkpoints
-        [spark-sentiment]=spark-sentiment-checkpoints
+    local volume="atmosphere_spark-checkpoints"
+
+    # Check each layer's checkpoint subdirectory within the single volume
+    local -A checkpoint_subdirs=(
+        [ingest]="ingest-raw"
+        [staging]="staging"
+        [core-posts]="core/posts"
+        [core-engagement]="core/engagement"
+        [sentiment]="sentiment"
     )
 
-    for service in "${SERVICES[@]}"; do
-        local volume=${checkpoint_volumes[$service]}
-        # Get the most recently modified file in the checkpoint volume
+    for layer in ingest staging core-posts core-engagement sentiment; do
+        local subdir=${checkpoint_subdirs[$layer]}
         local last_modified
         last_modified=$(docker run --rm -v "${volume}:/cp" alpine sh -c \
-            'find /cp -type f -printf "%T@ %p\n" 2>/dev/null | sort -rn | head -1 | cut -d" " -f1' 2>/dev/null || echo "")
+            "find /cp/${subdir} -type f -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f1" 2>/dev/null || echo "")
 
         if [[ -z "$last_modified" ]]; then
-            result "$service" WARN "no checkpoint data"
+            result "$layer" WARN "no checkpoint data"
             continue
         fi
 
@@ -466,9 +469,9 @@ check_checkpoints() {
         local age=$(( now - ${last_modified%%.*} ))
 
         if (( age > INTERVAL * 3 )); then
-            result "$service" FAIL "checkpoint stale (${age}s old)"
+            result "$layer" FAIL "checkpoint stale (${age}s old)"
         else
-            result "$service" PASS "checkpoint advancing (${age}s ago)"
+            result "$layer" PASS "checkpoint advancing (${age}s ago)"
         fi
     done
     echo ""

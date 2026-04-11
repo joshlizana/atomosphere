@@ -10,7 +10,7 @@ up:
 	@./scripts/monitor.sh --loop &
 
 down:
-	docker compose down -v --remove-orphans
+	docker compose down --remove-orphans
 
 logs:
 	docker compose logs -f

@@ -112,9 +112,9 @@ def predict_sentiment(iterator):
 
         for result in results:
             scores = {r["label"]: r["score"] for r in result}
-            pos = scores.get("Positive", 0.0)
-            neg = scores.get("Negative", 0.0)
-            neu = scores.get("Neutral", 0.0)
+            pos = scores.get("positive", scores.get("Positive", 0.0))
+            neg = scores.get("negative", scores.get("Negative", 0.0))
+            neu = scores.get("neutral", scores.get("Neutral", 0.0))
 
             positives.append(pos)
             negatives.append(neg)

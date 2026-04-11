@@ -92,11 +92,14 @@ log() {
 
 result() {
     local name=$1 status=$2 detail=$3
+    local line
+    line=$(printf "  %-28s [%s] %s" "$name" "$status" "$detail")
+    echo "$line"
+    log "$line"
     case $status in
-        PASS) printf "  %-28s %s\n" "$name" "[PASS] $detail"; ((PASS_COUNT++)) ;;
-        FAIL) printf "  %-28s %s\n" "$name" "[FAIL] $detail"; ((FAIL_COUNT++)) ;;
-        WARN) printf "  %-28s %s\n" "$name" "[WARN] $detail"; ((WARN_COUNT++)) ;;
-        SKIP) printf "  %-28s %s\n" "$name" "[SKIP] $detail" ;;
+        PASS) ((PASS_COUNT++)) ;;
+        FAIL) ((FAIL_COUNT++)) ;;
+        WARN) ((WARN_COUNT++)) ;;
     esac
 }
 

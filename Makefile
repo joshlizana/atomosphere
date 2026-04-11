@@ -1,4 +1,4 @@
-.PHONY: up down logs status clean
+.PHONY: up down logs status clean monitor monitor-loop
 
 up:
 	docker compose up -d --build
@@ -19,3 +19,9 @@ status:
 clean:
 	docker compose down -v --remove-orphans
 	@echo "Volumes and containers removed."
+
+monitor:
+	./scripts/monitor.sh
+
+monitor-loop:
+	./scripts/monitor.sh --loop

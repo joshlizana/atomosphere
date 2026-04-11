@@ -193,12 +193,44 @@ services:
     mem_limit: 10g
     restart: unless-stopped
 
+  spark-sentiment:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile.sentiment
+    container_name: spark-sentiment
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[*]
+      - /opt/spark/work-dir/spark/transforms/sentiment.py
+    ports:
+      - "4043:4040"
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+    volumes:
+      - spark-sentiment-checkpoints:/opt/spark/checkpoints
+    depends_on:
+      spark-core:
+        condition: service_started
+    networks:
+      - atmosphere-data
+    mem_limit: 16g
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    restart: unless-stopped
+
 volumes:
   rustfs-data:
   postgres-data:
   spark-ingest-checkpoints:
   spark-staging-checkpoints:
   spark-core-checkpoints:
+  spark-sentiment-checkpoints:
 
 networks:
   atmosphere-data:

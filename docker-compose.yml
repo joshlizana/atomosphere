@@ -133,6 +133,7 @@ services:
       AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
       AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
       AWS_REGION: us-east-1
+      JETSTREAM_CURSOR: ${JETSTREAM_CURSOR:-}
     volumes:
       - spark-ingest-checkpoints:/opt/spark/checkpoints
     depends_on:

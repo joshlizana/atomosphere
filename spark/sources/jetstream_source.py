@@ -12,6 +12,7 @@ References:
 
 import json
 import logging
+import os
 import threading
 import time
 from collections import deque
@@ -216,7 +217,14 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         self._ws_thread.start()
 
     def initialOffset(self):
-        """Return current time in microseconds as starting offset (FR-03)."""
+        """Return current time in microseconds as starting offset (FR-03).
+
+        If JETSTREAM_CURSOR env var is set, use it as the starting offset
+        to support replay/backfill scenarios.
+        """
+        cursor = os.environ.get("JETSTREAM_CURSOR")
+        if cursor:
+            return {"time_us": int(cursor)}
         return {"time_us": int(time.time() * 1_000_000)}
 
     def read(self, start):

@@ -1,4 +1,4 @@
-.PHONY: up down logs status clean monitor monitor-loop
+.PHONY: up down logs status clean monitor monitor-loop maintain reset-checkpoint replay
 
 up:
 	docker compose up -d --build
@@ -6,6 +6,8 @@ up:
 	@docker compose logs -f init 2>/dev/null || true
 	@echo "\n=== Service Status ==="
 	@docker compose ps -a
+	@echo "\n=== Starting monitor ==="
+	@./scripts/monitor.sh --loop &
 
 down:
 	docker compose down -v --remove-orphans
@@ -25,3 +27,16 @@ monitor:
 
 monitor-loop:
 	./scripts/monitor.sh --loop
+
+maintain:
+	./scripts/maintain.sh
+
+reset-checkpoint:
+	@echo "Usage: make reset-checkpoint SVC=<service>"
+	@echo "  e.g. make reset-checkpoint SVC=spark-staging"
+	@test -n "$(SVC)" && ./scripts/reset-checkpoint.sh $(SVC) || true
+
+replay:
+	@echo "Usage: make replay TIME=<timestamp>"
+	@echo "  e.g. make replay TIME=-1h"
+	@test -n "$(TIME)" && ./scripts/replay.sh $(TIME) || true

@@ -74,6 +74,10 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
       - commit(end): persist offset for cursor-based reconnection
     """
 
+    # Exponential backoff constants (FR-04, NFR-06)
+    _BACKOFF_BASE = 1.0
+    _BACKOFF_MAX = 30.0
+
     def __init__(self, schema, options):
         self._schema = schema
         self._options = options
@@ -86,19 +90,64 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         self._ws = None
         self._ws_thread = None
         self._running = False
+        self._backoff_delay = self._BACKOFF_BASE
+        self._endpoint_index = JETSTREAM_ENDPOINTS.index(self._endpoint) \
+            if self._endpoint in JETSTREAM_ENDPOINTS else 0
+        self._consecutive_failures = 0
         self._connect()
+
+    def _get_connect_url(self):
+        """Build WebSocket URL with cursor for reconnection (FR-04)."""
+        endpoint = JETSTREAM_ENDPOINTS[self._endpoint_index]
+        if self._committed_time_us > 0:
+            cursor = self._committed_time_us - 5_000_000
+            return f"{endpoint}?cursor={cursor}"
+        return endpoint
+
+    def _rotate_endpoint(self):
+        """Rotate to the next Jetstream endpoint for failover (FR-04)."""
+        self._endpoint_index = (self._endpoint_index + 1) % len(JETSTREAM_ENDPOINTS)
+        logger.info(
+            "Failing over to endpoint: %s",
+            JETSTREAM_ENDPOINTS[self._endpoint_index],
+        )
+
+    def _reconnect(self):
+        """Reconnect with exponential backoff and endpoint failover (FR-04, NFR-06).
+
+        Backoff schedule: 1s → 2s → 4s → 8s → 16s → 30s (capped).
+        Rotates to the next Jetstream endpoint after each failure.
+        """
+        if not self._running:
+            logger.warning(
+                "Reconnection skipped — reader has been stopped. "
+                "Pipeline will not receive new events until restarted."
+            )
+            return
+
+        self._consecutive_failures += 1
+        self._rotate_endpoint()
+
+        logger.info(
+            "Reconnecting in %.1fs (attempt %d, endpoint: %s)",
+            self._backoff_delay,
+            self._consecutive_failures,
+            JETSTREAM_ENDPOINTS[self._endpoint_index],
+        )
+
+        reconnect_timer = threading.Timer(self._backoff_delay, self._connect)
+        reconnect_timer.daemon = True
+        reconnect_timer.start()
+
+        # Exponential backoff: double delay, cap at 30s
+        self._backoff_delay = min(self._backoff_delay * 2, self._BACKOFF_MAX)
 
     def _connect(self):
         """Start WebSocket connection in a background thread."""
         import websocket
 
         self._running = True
-
-        url = self._endpoint
-        if self._committed_time_us > 0:
-            # Reconnect with 5-second overlap buffer (FR-04)
-            cursor = self._committed_time_us - 5_000_000
-            url = f"{self._endpoint}?cursor={cursor}"
+        url = self._get_connect_url()
 
         def on_message(ws, message):
             try:
@@ -125,9 +174,13 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
 
         def on_close(ws, close_status_code, close_msg):
             logger.info("WebSocket closed: %s %s", close_status_code, close_msg)
+            self._reconnect()
 
         def on_open(ws):
             logger.info("Connected to Jetstream: %s", url)
+            # Reset backoff on successful connection
+            self._backoff_delay = self._BACKOFF_BASE
+            self._consecutive_failures = 0
 
         self._ws = websocket.WebSocketApp(
             url,

@@ -108,7 +108,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | O3 | Score every post for multilingual sentiment | `core_post_sentiment` table contains a sentiment label (`positive`, `negative`, `neutral`) and confidence score for every row in `core_posts` |
 | O4 | Deliver live analytics through a Grafana dashboard | Five dashboard sections — sentiment, firehose activity, language/content, engagement velocity, pipeline health — refreshing every 5 seconds |
 | O5 | Expose the dashboard via a public URL | Dashboard accessible at `atmosphere.yourdomain.com` via Cloudflare Tunnel with outbound-only HTTPS |
-| O6 | Provide a single-command reproducible environment | `make up` starts the full 8-container stack (init, rustfs, polaris, postgres, spark-unified, spark-thrift, grafana, cloudflared) from a clean clone |
+| O6 | Provide a single-command reproducible environment | `make up` starts the full 8-container stack (init, rustfs, polaris, postgres, spark-unified, query-api, grafana, cloudflared) from a clean clone |
 
 ---
 
@@ -123,7 +123,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | Stream processing | Five chained Spark Structured Streaming applications across four medallion layers, each running in its own container |
 | Sentiment analysis | GPU-accelerated XLM-RoBERTa inference on all posts via `mapInPandas`, with automatic CPU adaptation |
 | Data storage | 20+ Apache Iceberg tables on RustFS (S3-compatible storage) with Polaris REST catalog |
-| Dashboard | Five-section Grafana dashboard (17+ panels) provisioned as code with Apache Hive datasource plugin |
+| Dashboard | Five-section Grafana dashboard (17+ panels) provisioned as code with Infinity datasource plugin |
 | Public access | Cloudflare Tunnel from local machine to public HTTPS URL |
 | Infrastructure | Docker Compose orchestration within a ~22 GB memory budget on a 32 GB workstation |
 | Documentation | BRD (this document), TDD, README |
@@ -153,14 +153,14 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | FR-04 | Critical | Posts are enriched in the core layer with extracted hashtags, mention DIDs, link URLs, primary language, and content type classification |
 | FR-05 | Critical | Every post receives a three-class sentiment score (`positive`, `negative`, `neutral`) from the XLM-RoBERTa model via GPU-accelerated `mapInPandas` |
 | FR-06 | Critical | Five materialized mart tables (`mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health`) are updated on each 5-second micro-batch |
-| FR-07 | Critical | The Grafana dashboard displays five analytical rows with sub-second query latency via Spark Thrift Server |
+| FR-07 | Critical | The Grafana dashboard displays five analytical rows with sub-second query latency via Query API |
 | FR-08 | Critical | The pipeline recovers automatically from WebSocket disconnects using exponential backoff and cursor-based replay |
 | FR-09 | High | Trending hashtags are identified by comparing current frequency against a historical baseline, with window sizes configurable via Grafana template variables |
 | FR-10 | High | The dashboard is publicly accessible via Cloudflare Tunnel at a custom domain |
 | FR-11 | High | The full stack starts from `make up` with idempotent initialization (init container creates RustFS buckets, Polaris warehouse, and Iceberg namespaces) |
 | FR-12 | Medium | Dashboard panels display the top 5 most positive and most negative recent posts with full text via the `mart_top_posts` view |
 | FR-13 | Medium | The pipeline health row shows per-container processing lag, events ingested per second, and last successful batch timestamps |
-| FR-14 | Medium | Four additional analytics views (`mart_language_distribution`, `mart_top_posts`, `mart_most_mentioned`, `mart_content_breakdown`) are served on-demand through Spark Thrift |
+| FR-14 | Medium | Four additional analytics views (`mart_language_distribution`, `mart_top_posts`, `mart_most_mentioned`, `mart_content_breakdown`) are served on-demand through the Query API |
 
 ### 6.2 Non-Functional Requirements
 
@@ -180,8 +180,8 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | ID | Requirement |
 |---|---|
 | IR-01 | spark-unified connects to the Jetstream WebSocket via a custom Python DataSource V2 implementation (`JetstreamDataSource` + `JetstreamStreamReader`) |
-| IR-02 | spark-unified and spark-thrift share table metadata through the Polaris REST catalog at port 8181 |
-| IR-03 | Grafana connects to Spark Thrift Server via the Apache Hive datasource plugin (JDBC, port 10000) |
+| IR-02 | spark-unified and query-api share table metadata through the Polaris REST catalog at port 8181 |
+| IR-03 | Grafana connects to Query API via the Infinity datasource plugin (REST API, port 8000) |
 | IR-04 | The cloudflared container routes public HTTPS traffic to the local Grafana instance on the `atmosphere-frontend` Docker network |
 | IR-05 | spark-unified accesses the host NVIDIA GPU via `nvidia-container-toolkit` with `deploy.resources.reservations.devices: [capabilities: [gpu]]` |
 
@@ -218,7 +218,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 |---|---|---|
 | C-01 | Hardware | 32 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
 | C-02 | Compute | ~24 GB allocated to Docker; ~8 GB reserved for the host workstation |
-| C-03 | Memory budget | Unified architecture: spark-unified (14 GB), rustfs (3 GB), spark-thrift (2 GB), polaris (1 GB), postgres (1 GB), grafana (512 MB), init (512 MB), cloudflared (256 MB) — total ~22.3 GB |
+| C-03 | Memory budget | Unified architecture: spark-unified (14 GB), rustfs (3 GB), query-api (2 GB), polaris (1 GB), postgres (1 GB), grafana (512 MB), init (512 MB), cloudflared (256 MB) — total ~22.3 GB |
 | C-04 | Storage | All data stored locally in RustFS within Docker volumes; 30-day retention window |
 | C-05 | Network | Single outbound WebSocket to Jetstream; inbound public access via Cloudflare Tunnel |
 | C-06 | Technology | Three core technologies — Spark, Iceberg, Grafana — plus supporting infrastructure (RustFS, Polaris, PostgreSQL, cloudflared) |
@@ -244,7 +244,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 The project is complete when:
 
 1. **The pipeline runs continuously** — all containers healthy, data flowing through all four medallion layers (`atmosphere.raw` → `atmosphere.staging` → `atmosphere.core` → `atmosphere.mart`)
-2. **The dashboard is live** — five sections rendering real-time data with 5-second refresh via Spark Thrift JDBC
+2. **The dashboard is live** — five sections rendering real-time data with 5-second refresh via Query API
 3. **Sentiment analysis is active** — every post receives a multilingual sentiment score with visible positive/negative/neutral distribution on the Sentiment Live Feed row
 4. **The public URL is accessible** — `atmosphere.yourdomain.com` loads the Grafana dashboard through Cloudflare Tunnel
 5. **The environment is reproducible** — `git clone` followed by `make up` produces a working system
@@ -258,9 +258,9 @@ The project is complete when:
 
 | Technology | Responsibilities |
 |---|---|
-| **Apache Spark 4.x** | WebSocket ingestion (custom DataSource V2), stream processing (Structured Streaming, 5-second micro-batches), SQL transformation, ML inference (`mapInPandas` with GPU), query serving (Thrift Server) |
+| **Apache Spark 4.x** | WebSocket ingestion (custom DataSource V2), stream processing (Structured Streaming, 5-second micro-batches), SQL transformation, ML inference (`mapInPandas` with GPU), query serving (Query API) |
 | **Apache Iceberg** | ACID table format across four medallion layers — `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`, `atmosphere.mart` — on RustFS with Polaris REST catalog |
-| **Grafana** | Live dashboard with five analytical sections, provisioned as code, connected via Apache Hive datasource plugin to Spark Thrift JDBC |
+| **Grafana** | Live dashboard with five analytical sections, provisioned as code, connected via Infinity datasource plugin to Query API (REST) |
 
 ### 10.2 Data Flow
 
@@ -274,12 +274,12 @@ flowchart LR
     SU --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
     SU --> SENT[(core_post_sentiment)]
     CORE & SENT --> MART[(5 materialized marts\n4 views)]
-    MART --> ST[spark-thrift]
+    MART --> ST[query-api]
     ST --> GF[Grafana]
     GF --> PU[Public URL]
 ```
 
-Five Spark Structured Streaming applications run in separate containers, chained via Iceberg `readStream`. Each application processes 5-second micro-batches. Spark Thrift Server exposes all tables via JDBC for Grafana queries.
+Five Spark Structured Streaming applications run in separate containers, chained via Iceberg `readStream`. Each application processes 5-second micro-batches. The Query API exposes all tables via REST for Grafana queries.
 
 ### 10.3 Key Technical Differentiators
 
@@ -303,7 +303,7 @@ Five Spark Structured Streaming applications run in separate containers, chained
 | **Phase 3: Staging** | Staging layer parsing all six collection types into typed staging tables with daily partitioning. | Phase 2 |
 | **Phase 4: Core + Mart** | Core layer producing five enriched core tables (`core_posts`, `core_mentions`, `core_hashtags`, `core_engagement`) and five materialized mart tables. Four analytics views. | Phase 3 |
 | **Phase 5: Sentiment** | Sentiment layer running XLM-RoBERTa inference on GPU via `mapInPandas` (batch_size=64). Docker image with CUDA + embedded model weights (~1.1 GB). `core_post_sentiment` table. All four layers consolidated into spark-unified. | Phase 4 |
-| **Phase 6: Dashboard** | Grafana with five provisioned dashboard sections (17+ panels). spark-thrift serving JDBC queries via Apache Hive plugin. | Phase 4 (Phase 5 for sentiment panels) |
+| **Phase 6: Dashboard** | Grafana with five provisioned dashboard sections (17+ panels). query-api serving REST queries via Infinity plugin. | Phase 4 (Phase 5 for sentiment panels) |
 | **Phase 7: Public Access** | cloudflared container, Cloudflare Tunnel configuration, public URL. README and documentation finalized. | Phase 6 |
 
 ### 11.2 Phase Dependencies
@@ -353,5 +353,5 @@ flowchart TD
 | **RustFS** | An Apache 2.0-licensed, S3-API-compatible object storage server |
 | **Structured Streaming** | Spark's stream processing engine that treats live data streams as continuously appended tables |
 | **TDD** | Technical Design Document — the companion document covering implementation details, data model, and system architecture |
-| **Thrift Server** | Spark's built-in HiveServer2-compatible JDBC endpoint for SQL query serving |
+| **Query API** | FastAPI + PySpark REST API for SQL query serving, replacing the legacy Spark Thrift Server |
 | **XLM-RoBERTa** | A cross-lingual transformer model trained on 100+ languages, used for multilingual sentiment classification |

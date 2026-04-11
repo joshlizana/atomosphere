@@ -89,7 +89,7 @@ flowchart TD
     subgraph Local Machine
         subgraph Spark Engine
             SU[spark-unified\nIngest + Staging + Core + Sentiment\nGPU-accelerated]
-            ST[spark-thrift\nJDBC Serving]
+            QA[query-api\nREST API Serving]
         end
 
         subgraph Storage
@@ -113,17 +113,15 @@ flowchart TD
     SS -->|reads raw, writes staging| RS
     SC -->|reads staging, writes core| RS
     SM -->|reads core posts, writes sentiment| RS
-    ST -->|reads all layers| RS
-    SI & SS & SC & SM & ST <-->|catalog ops| PL
+    QA -->|reads all layers| RS
+    SI & SS & SC & SM & QA <-->|catalog ops| PL
     PL --> PG
-    GF -->|JDBC via Hive plugin| ST
+    GF -->|REST API via Infinity plugin| QA
     GF --> CF
     CF -->|HTTPS| PU
 ```
 
 ### 3.2 Data Flow
-
-The pipeline operates as a chain of five Spark Structured Streaming applications, each running in its own container. Every application reads from upstream Iceberg tables via `readStream` and writes to downstream Iceberg tables, forming a continuous streaming DAG:
 
 All four streaming layers run in a single unified Spark process (`spark-unified`) sharing one SparkSession and JVM:
 
@@ -135,7 +133,7 @@ All four streaming layers run in a single unified Spark process (`spark-unified`
 
 4. **Sentiment layer** reads `core_posts` and applies the XLM-RoBERTa sentiment model via `mapInPandas` with GPU acceleration. Results are written to `core_post_sentiment`.
 
-5. **spark-thrift** exposes all Iceberg tables (raw through mart) as a JDBC endpoint. Grafana connects via the Apache Hive datasource plugin and refreshes panels every 5 seconds.
+5. **query-api** exposes all Iceberg tables (raw through mart) as a REST API endpoint. Grafana connects via the Infinity datasource plugin and refreshes panels every 5 seconds.
 
 Additionally, the core layer materializes mart-layer aggregation tables (`mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health`) from core tables on each micro-batch. Less frequently queried analytics are served as Iceberg views.
 
@@ -149,8 +147,8 @@ flowchart LR
     SU --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
     SU --> SENT[(core_post_sentiment)]
     CORE & SENT --> MART[(mart_*\n5 materialized\n4 views)]
-    MART & CORE & STG & RAW --> ST[spark-thrift]
-    ST --> GF[Grafana]
+    MART & CORE & STG & RAW --> QA[query-api]
+    QA --> GF[Grafana]
 ```
 
 ### 3.3 Technology Choices and Rationale
@@ -164,9 +162,9 @@ flowchart LR
 | Object storage | RustFS | Apache 2.0-licensed, S3-API-compatible object storage. Drop-in replacement for MinIO with active maintenance. Used consistently across the portfolio. |
 | Sentiment model | cardiffnlp/twitter-xlm-roberta-base-sentiment | XLM-RoBERTa fine-tuned on ~198M tweets. Covers 100+ languages including Japanese and Korean — critical for Bluesky's multilingual user base. |
 | ML inference | HuggingFace Transformers + `mapInPandas` | Vectorized batch inference via Pandas UDFs. GPU-accelerated with NVIDIA container toolkit. |
-| Dashboard | Grafana | Industry-standard observability platform. Apache Hive datasource plugin connects directly to Spark Thrift Server via JDBC. |
+| Dashboard | Grafana | Industry-standard observability platform. Infinity datasource plugin connects to the query-api service via REST API. |
 | Public access | Cloudflare Tunnel | Secure outbound-only HTTPS tunnel from local machine to public URL. All compute stays local. |
-| Container orchestration | Docker Compose | Single `make up` command starts the full 8-container stack. |
+| Container orchestration | Docker Compose | Single `make up` command starts the full stack. |
 | Python tooling | uv + pyproject.toml | Modern, fast Python dependency management with lockfile support. |
 
 ### 3.4 Consolidated Responsibilities
@@ -181,7 +179,7 @@ Spark serves seven distinct roles that are conventionally handled by separate to
 | SQL transformation | Spark SQL executed as streaming queries within each application |
 | Unified batch + stream | A single streaming engine serves both real-time and analytical workloads |
 | Data quality | DataFrame assertions inline within streaming transformations |
-| Query serving | Spark Thrift Server exposes all tables via JDBC |
+| Query serving | Query API (FastAPI + PySpark) exposes all tables via REST API |
 
 ---
 
@@ -491,7 +489,7 @@ All staging tables share a common set of envelope columns derived from the raw e
 | `mart_engagement_velocity` | Likes/sec, reposts/sec, follows/sec over rolling windows. |
 | `mart_pipeline_health` | Events ingested per batch, processing lag (event time vs. wall clock), last successful batch timestamp per container. Self-monitoring panel data. |
 
-**Views** (served on-demand via Spark Thrift):
+**Views** (served on-demand via the query-api service):
 
 | View | Description |
 |---|---|
@@ -524,8 +522,8 @@ Data retention is set to **30 days** across all layers. Expired partitions are d
 | `polaris` | `apache/polaris` | Iceberg REST catalog. Serves table metadata to Spark processes. | 1 GB | 8181 |
 | `postgres` | `postgres:16` | Backing store for the Polaris catalog. | 1 GB | 5432 |
 | `spark-unified` | Custom (Spark 4.x + CUDA + HuggingFace) | Runs all 4 streaming layers (ingest, staging, core, sentiment) in one JVM. GPU-accelerated sentiment inference. | 14 GB | 4040 (Spark UI) |
-| `spark-thrift` | Custom (Spark 4.x) | Spark Thrift Server exposing all Iceberg tables via JDBC. | 2 GB | 10000 (JDBC), 4044 (Spark UI) |
-| `grafana` | `grafana/grafana-oss` | Dashboard rendering. Connects to Spark Thrift via Apache Hive plugin. | 512 MB | 3000 |
+| `query-api` | Custom (Spark 4.x) | FastAPI + PySpark REST API exposing all Iceberg tables via HTTP/JSON. | 2 GB | 8000 (REST API) |
+| `grafana` | `grafana/grafana-oss` | Dashboard rendering. Connects to query-api via Infinity datasource plugin. | 512 MB | 3000 |
 | `cloudflared` | `cloudflare/cloudflared` | Cloudflare Tunnel agent. Bridges local Grafana to a public HTTPS URL. | 256 MB | — |
 
 **Total memory allocation: ~22 GB** (within 24 GB budget, leaving ~1.7 GB headroom for JVM overhead and OS caches).
@@ -538,8 +536,8 @@ flowchart TD
     RS[rustfs] --> INIT[init]
     PL --> INIT
     INIT --> SU[spark-unified]
-    INIT --> ST[spark-thrift]
-    ST --> GF[grafana]
+    INIT --> QA[query-api]
+    QA --> GF[grafana]
     GF --> CF[cloudflared]
 ```
 
@@ -549,10 +547,10 @@ Containers use Docker Compose `depends_on` with health checks to enforce orderin
 
 | Network | Purpose | Members |
 |---|---|---|
-| `atmosphere-data` | Internal data plane. All storage and compute traffic. | rustfs, polaris, postgres, init, spark-unified, spark-thrift |
-| `atmosphere-frontend` | Serving plane. Dashboard and public access. | spark-thrift, grafana, cloudflared |
+| `atmosphere-data` | Internal data plane. All storage and compute traffic. | rustfs, polaris, postgres, init, spark-unified, query-api |
+| `atmosphere-frontend` | Serving plane. Dashboard and public access. | query-api, grafana, cloudflared |
 
-`spark-thrift` is connected to both networks — it reads from storage on the data network and serves queries to Grafana on the frontend network.
+`query-api` is connected to both networks — it reads from storage on the data network and serves queries to Grafana on the frontend network.
 
 ### 6.4 Init Service
 
@@ -729,29 +727,39 @@ The three probability scores sum to 1.0 for each post. The `sentiment_label` is 
 
 ## 9. Serving and Interfaces
 
-### 9.1 Spark Thrift Server
+### 9.1 Query API
 
-The `spark-thrift` container runs Spark's built-in Thrift Server (HiveServer2-compatible) in `local[*]` mode. It exposes all Iceberg tables across all four namespaces as queryable tables via JDBC.
+The `query-api` container runs a custom FastAPI application backed by PySpark in `local[*]` mode. It exposes all Iceberg tables across all four namespaces as queryable resources via a REST API that returns JSON.
 
 | Property | Value |
 |---|---|
-| Protocol | HiveServer2 (Thrift) |
-| Port | 10000 |
+| Protocol | HTTP/REST (JSON) |
+| Port | 8000 |
+| Framework | FastAPI + PySpark |
 | Authentication | None (local network only) |
 | Catalog | Polaris REST catalog (`atmosphere`) |
+| Health check | HTTP GET to `/health` |
 | Concurrent queries | Limited by `local[*]` parallelism — sufficient for a single Grafana instance |
+
+**Endpoints:**
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Health check — returns service status |
+| `/api/marts` | GET | Lists available mart tables and views |
+| `/api/mart/{name}` | GET | Returns data from a named mart table or view |
+| `/api/sql` | POST | Executes an arbitrary SQL query against Iceberg tables |
 
 ### 9.2 Grafana Connection
 
-Grafana connects to Spark Thrift using the **Apache Hive datasource plugin**, which speaks the HiveServer2 protocol natively.
+Grafana connects to the query-api service using the **Infinity datasource plugin** (`yesoreyeram-infinity-datasource`), which issues HTTP requests and parses JSON responses.
 
 **Data source configuration:**
 
 | Setting | Value |
 |---|---|
-| Host | `spark-thrift` |
-| Port | `10000` |
-| Database | `atmosphere` |
+| Plugin | Infinity (`yesoreyeram-infinity-datasource`) |
+| Base URL | `http://query-api:8000` |
 | Auth | Anonymous |
 
 All dashboard panels issue SQL queries against Iceberg tables via this connection. Panels refresh every 5 seconds, aligned with the upstream micro-batch trigger interval.
@@ -854,7 +862,7 @@ The Grafana dashboard is organized into five horizontal rows, each targeting a d
 
 All dashboard configuration is committed to the repository as code:
 
-- `grafana/provisioning/datasources/hive.yml` — auto-configures the Apache Hive data source pointing to `spark-thrift:10000`
+- `grafana/provisioning/datasources/infinity.yml` — auto-configures the Infinity data source pointing to `http://query-api:8000`
 - `grafana/provisioning/dashboards/dashboard.yml` — dashboard provisioning configuration
 - `grafana/dashboards/atmosphere.json` — complete dashboard definition (panels, queries, layout)
 
@@ -895,7 +903,7 @@ Health checks are defined for critical services:
 | rustfs | HTTP GET to health endpoint |
 | polaris | HTTP GET to `/api/v1/config` |
 | postgres | `pg_isready` |
-| spark-thrift | TCP connect to port 10000 |
+| query-api | HTTP GET to `/health` on port 8000 |
 | grafana | HTTP GET to `/api/health` |
 
 ### 11.4 Stale Data Handling
@@ -927,7 +935,7 @@ atmosphere/
 ├── .gitignore
 │
 ├── spark/
-│   ├── Dockerfile                         # Base Spark 4.x image (spark-thrift)
+│   ├── Dockerfile                         # Base Spark 4.x image (query-api)
 │   ├── Dockerfile.sentiment               # Unified image: CUDA + HuggingFace + model weights (spark-unified)
 │   ├── conf/
 │   │   └── spark-defaults.conf            # Iceberg catalog, S3/RustFS, checkpointing config
@@ -945,7 +953,7 @@ atmosphere/
 │   │       ├── core/                      # SQL files for core transforms
 │   │       └── mart/                      # SQL files for mart materializations
 │   └── serving/
-│       └── thrift_server.sh               # spark-thrift startup script
+│       └── query_api.py                   # query-api FastAPI + PySpark service
 │
 ├── infra/
 │   ├── init/
@@ -957,7 +965,7 @@ atmosphere/
 ├── grafana/
 │   ├── provisioning/
 │   │   ├── datasources/
-│   │   │   └── hive.yml                   # Apache Hive data source → spark-thrift
+│   │   │   └── infinity.yml                # Infinity data source → query-api
 │   │   └── dashboards/
 │   │       └── dashboard.yml              # Dashboard provisioning config
 │   └── dashboards/
@@ -997,7 +1005,7 @@ Formal test suites and data quality frameworks are deferred to a post-MVP phase.
 
 ### 13.1 Smoke Tests
 
-- **Ingestion health:** Verify `raw_events` row count increases steadily by querying via Spark Thrift: `SELECT COUNT(*) FROM atmosphere.raw.raw_events WHERE ingested_at > current_timestamp - INTERVAL 1 MINUTE`.
+- **Ingestion health:** Verify `raw_events` row count increases steadily by querying via the query-api service: `SELECT COUNT(*) FROM atmosphere.raw.raw_events WHERE ingested_at > current_timestamp - INTERVAL 1 MINUTE`.
 - **Staging completeness:** Verify all six staging tables receive data: `SELECT 'stg_posts' AS tbl, COUNT(*) FROM atmosphere.staging.stg_posts UNION ALL ...`.
 - **Sentiment coverage:** Verify `core_post_sentiment` rows align with `core_posts`: `SELECT COUNT(*) FROM atmosphere.core.core_post_sentiment WHERE event_time > current_timestamp - INTERVAL 5 MINUTES`.
 
@@ -1063,7 +1071,7 @@ The tunnel ingress routes all traffic to the local Grafana instance at `http://g
 
 ### 14.3 Grafana Cloud Alternative
 
-Grafana Cloud's free tier (10,000 series, 50 GB logs) is a potential alternative to self-hosting. The Apache Hive data source plugin would connect to the Spark Thrift Server via the Cloudflare Tunnel — all compute stays local, and Grafana Cloud handles rendering and public access.
+Grafana Cloud's free tier (10,000 series, 50 GB logs) is a potential alternative to self-hosting. The Infinity datasource plugin would connect to the query-api service via the Cloudflare Tunnel — all compute stays local, and Grafana Cloud handles rendering and public access.
 
 This option is documented for future investigation. The initial deployment uses self-hosted Grafana with Cloudflare Tunnel.
 
@@ -1079,9 +1087,9 @@ The Jetstream WebSocket is a single-source, single-consumer stream. Jetstream pr
 
 The DataSource V2 API integrates natively with Spark's offset and checkpoint machinery, providing exactly-once guarantees within the streaming contract. It manages the WebSocket connection lifecycle, offset tracking, and micro-batch boundaries as a first-class Spark citizen — the same contract used by Kafka and Iceberg sources.
 
-### 15.3 One container per Spark application
+### 15.3 Unified streaming process with separate query serving
 
-Each Spark application (ingest, staging, core, sentiment, thrift) runs in its own container for three reasons: (1) independent lifecycle — sentiment can restart independently of ingestion, (2) independent resource allocation — the sentiment container gets GPU access and 16 GB; the thrift server gets 10 GB for query serving, (3) independent scaling — each container can scale independently in a distributed deployment.
+The four streaming layers (ingest, staging, core, sentiment) run in a single `spark-unified` container sharing one SparkSession and JVM. A separate `query-api` container provides REST API access to all Iceberg tables for Grafana. This separation keeps the streaming workload isolated from query serving while minimizing container count and memory overhead.
 
 ### 15.4 Adaptive GPU/CPU inference
 
@@ -1093,11 +1101,11 @@ The XLM-RoBERTa model runs on GPU when available (`device=0`) and adapts to CPU 
 
 ### 15.6 Centralized REST catalog (Polaris)
 
-The spark-unified process and spark-thrift server read and write table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-process coordination. Both processes share a consistent view of table state.
+The spark-unified process and query-api service read and write table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-process coordination. Both processes share a consistent view of table state.
 
 ### 15.7 Hybrid materialized + view mart layer
 
-Frequently queried marts (`sentiment_timeseries`, `events_per_second`, `trending_hashtags`, `engagement_velocity`, `pipeline_health`) are materialized as Iceberg tables, updated on each micro-batch by the core layer. Less frequent analytics (`language_distribution`, `top_posts`, `most_mentioned`, `content_breakdown`) are served as views through Spark Thrift. Materialized marts deliver sub-second query response times for Grafana's 5-second refresh cycle.
+Frequently queried marts (`sentiment_timeseries`, `events_per_second`, `trending_hashtags`, `engagement_velocity`, `pipeline_health`) are materialized as Iceberg tables, updated on each micro-batch by the core layer. Less frequent analytics (`language_distribution`, `top_posts`, `most_mentioned`, `content_breakdown`) are served as views through the query-api service. Materialized marts deliver sub-second query response times for Grafana's 5-second refresh cycle.
 
 ### 15.8 30-day retention window
 
@@ -1141,6 +1149,6 @@ Spark 4.x includes built-in Iceberg support, the Python DataSource V2 API, and i
 | **rkey** | Record Key — a unique identifier for a record within a collection, typically a TID (timestamp-based identifier). |
 | **RustFS** | An Apache 2.0-licensed, S3-API-compatible object storage server. Used as the storage backend for Iceberg data files. |
 | **Strong reference** | An AT Protocol reference consisting of a URI and CID pair, uniquely identifying a specific version of a record. |
-| **Thrift Server** | Spark's built-in HiveServer2-compatible JDBC/ODBC endpoint for SQL query serving. |
+| **Query API** | A custom FastAPI + PySpark REST API service that reads Iceberg tables and serves JSON responses to Grafana via the Infinity datasource plugin. |
 | **TID** | Timestamp Identifier — a base32-encoded timestamp used as record keys in the AT Protocol. |
 | **XLM-RoBERTa** | A cross-lingual transformer model trained on 100+ languages, used here for multilingual sentiment classification. |

@@ -52,7 +52,7 @@ This document covers all technical requirements for the Atmosphere platform, inc
 - Stream processing through a four-layer medallion architecture
 - GPU-accelerated multilingual sentiment analysis
 - Live Grafana dashboard with public access via Cloudflare Tunnel
-- Docker Compose-based 8-container orchestration
+- Docker Compose-based orchestration
 
 ---
 
@@ -63,7 +63,7 @@ This document covers all technical requirements for the Atmosphere platform, inc
 | AT Protocol | The Authenticated Transfer Protocol — the decentralized social networking protocol underlying Bluesky |
 | BRD | Business Requirements Document |
 | DID | Decentralized Identifier — a globally unique, persistent user identifier in the AT Protocol |
-| JDBC | Java Database Connectivity — protocol used by Grafana to query Spark Thrift Server |
+| REST API | HTTP-based query interface used by Grafana to query the Query API |
 | Jetstream | A service that converts the AT Protocol's binary CBOR firehose into lightweight JSON events over WebSocket |
 | NSID | Namespaced Identifier — reverse-DNS-style identifier for AT Protocol record types (e.g., `app.bsky.feed.post`) |
 | rkey | Record Key — a unique identifier for a record within a collection |
@@ -92,9 +92,9 @@ Atmosphere is a real-time data platform built on three core technologies:
 
 | Technology | Role |
 |---|---|
-| **Apache Spark 4.x** | Unified compute engine — ingestion, streaming, transformation, ML inference, query serving |
+| **Apache Spark 4.x** | Unified compute engine — ingestion, streaming, transformation, ML inference |
 | **Apache Iceberg** | Table format — ACID transactions, schema evolution, four-layer medallion architecture |
-| **Grafana** | Visualization — live dashboard with 5-second refresh, connected via Apache Hive datasource plugin |
+| **Grafana** | Visualization — live dashboard with 5-second refresh, connected via Infinity datasource plugin |
 
 The platform ingests approximately 240 events per second from the Bluesky social network via the Jetstream WebSocket. Events flow through four processing layers (raw, staging, core, mart) in five chained Spark Structured Streaming applications. Every post is scored for multilingual sentiment using a GPU-accelerated transformer model. A Grafana dashboard surfaces analytics via a public URL through Cloudflare Tunnel.
 
@@ -175,7 +175,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 |---|---|---|---|
 | FR-15 | Critical | Five materialized mart tables are updated on each micro-batch | `mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health` contain current data within one micro-batch cycle (5 seconds) |
 | FR-16 | High | Trending hashtags are identified by comparing current frequency against a historical baseline | `mart_trending_hashtags` contains `tag`, current count, baseline count, and spike ratio. Window sizes are configurable via Grafana template variables |
-| FR-17 | High | Four analytics views are served on-demand | `mart_language_distribution`, `mart_top_posts`, `mart_most_mentioned`, `mart_content_breakdown` return results within 1 second via Spark Thrift |
+| FR-17 | High | Four analytics views are served on-demand | `mart_language_distribution`, `mart_top_posts`, `mart_most_mentioned`, `mart_content_breakdown` return results within 1 second via the Query API |
 | FR-18 | Medium | Top posts view displays the most positive and most negative recent posts with full text | `mart_top_posts` returns posts ordered by `sentiment_positive DESC` and `sentiment_negative DESC` with `text`, `primary_lang`, and sentiment scores |
 
 ### 5.5 Dashboard
@@ -191,7 +191,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Priority | Requirement | Acceptance Criteria |
 |---|---|---|---|
-| FR-23 | Critical | The full stack starts from a single command | `make up` starts all 8 containers (init, rustfs, polaris, postgres, spark-unified, spark-thrift, grafana, cloudflared) with correct dependency ordering |
+| FR-23 | Critical | The full stack starts from a single command | `make up` starts all 8 containers (init, rustfs, polaris, postgres, spark-unified, query-api, grafana, cloudflared) with correct dependency ordering |
 | FR-24 | Critical | Initialization is idempotent | The init container creates RustFS buckets, Polaris warehouse, and Iceberg namespaces only if they do not already exist. Subsequent runs are safe |
 | FR-25 | Critical | Each Spark application creates its own tables on first write | `CREATE TABLE IF NOT EXISTS` semantics ensure tables are created automatically without manual DDL |
 | FR-26 | High | All containers use health checks for dependency ordering | Docker Compose `depends_on` with `condition: service_healthy` enforces the startup chain |
@@ -207,7 +207,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 | NFR-01 | End-to-end latency from Jetstream event to dashboard display | < 10 seconds | Delta between event `time_us` and Grafana query response time, measured via `mart_pipeline_health` |
 | NFR-02 | Sustained ingestion throughput | 240+ events/sec | `mart_pipeline_health` — events ingested per second |
 | NFR-03 | Sentiment inference throughput on GPU | 200–500 texts/sec at batch_size=64 | Timed inference runs on the spark-unified container |
-| NFR-04 | Grafana query response time from materialized marts | < 1 second | Observed query latency in Grafana panel inspector |
+| NFR-04 | Grafana query response time from the Query API | < 1 second | Observed query latency in Grafana panel inspector |
 | NFR-05 | Cold start time (from `make up` to first panel data) | < 5 minutes | Wall clock time from command execution to Grafana rendering data |
 
 ### 6.2 Resilience
@@ -263,7 +263,7 @@ flowchart TD
     subgraph Docker Compose Stack
         subgraph Compute
             SU[spark-unified\n+ GPU]
-            ST[spark-thrift]
+            QA[query-api]
         end
 
         subgraph Storage
@@ -282,10 +282,10 @@ flowchart TD
 
     JS -->|WebSocket| SU
     SU --> RS
-    SU & ST <--> PL
+    SU & QA <--> PL
     PL --> PG
-    ST -->|reads all layers| RS
-    GF -->|JDBC| ST
+    QA -->|reads all layers| RS
+    GF -->|REST| QA
     GF --> CFD
     CFD -->|HTTPS tunnel| CF_EDGE
     RS & PL --> INIT
@@ -300,7 +300,7 @@ flowchart TD
 | polaris | 1 GB | Iceberg REST catalog serving table metadata to Spark |
 | postgres | 1 GB | Backing store for the Polaris catalog |
 | spark-unified | 14 GB | Unified streaming pipeline: ingest + staging + core + sentiment (GPU) in one JVM |
-| spark-thrift | 2 GB | JDBC query serving for Grafana |
+| query-api | 2 GB | REST API query serving for Grafana (FastAPI + PySpark) |
 | grafana | 512 MB | Dashboard rendering |
 | cloudflared | 256 MB | Cloudflare Tunnel agent |
 | **Total** | **~22.3 GB** | |
@@ -309,10 +309,10 @@ flowchart TD
 
 | Network | Purpose | Members |
 |---|---|---|
-| `atmosphere-data` | Internal compute and storage traffic | rustfs, polaris, postgres, init, all Spark containers |
-| `atmosphere-frontend` | Dashboard serving and public access | spark-thrift, grafana, cloudflared |
+| `atmosphere-data` | Internal compute and storage traffic | rustfs, polaris, postgres, init, spark-unified, query-api |
+| `atmosphere-frontend` | Dashboard serving and public access | query-api, grafana, cloudflared |
 
-`spark-thrift` is connected to both networks — it reads from storage on the data network and serves queries to Grafana on the frontend network.
+`query-api` is connected to both networks — it reads from storage on the data network and serves queries to Grafana on the frontend network.
 
 ### 7.4 Startup Dependency Chain
 
@@ -322,8 +322,8 @@ flowchart TD
     RS[rustfs] --> INIT[init]
     PL --> INIT
     INIT --> SU[spark-unified]
-    INIT --> ST[spark-thrift]
-    ST --> GF[grafana]
+    INIT --> QA[query-api]
+    QA --> GF[grafana]
     GF --> CF[cloudflared]
 ```
 
@@ -336,7 +336,7 @@ flowchart TD
 | Iceberg catalog | Apache Polaris (REST) | FR-25, IR-02 |
 | Sentiment model | cardiffnlp/twitter-xlm-roberta-base-sentiment | FR-11, FR-13, NFR-03 |
 | ML inference | HuggingFace Transformers + `mapInPandas` | FR-12, NFR-11 |
-| Dashboard | Grafana + Apache Hive datasource plugin | FR-19, FR-20, NFR-04 |
+| Dashboard | Grafana + Infinity datasource plugin | FR-19, FR-20, NFR-04 |
 | Public access | Cloudflare Tunnel (cloudflared) | FR-21 |
 | Orchestration | Docker Compose | FR-23, FR-26, NFR-09 |
 
@@ -390,23 +390,24 @@ flowchart TD
 
 **Retention:** 30 days across all layers. Expired partitions are dropped by a maintenance routine.
 
-### 8.4 Spark Thrift Server (JDBC)
+### 8.4 Query API (REST)
 
 | Property | Specification |
 |---|---|
-| Protocol | HiveServer2 (Thrift) |
-| Port | 10000 |
+| Protocol | REST/HTTP |
+| Port | 8000 |
+| Framework | FastAPI + PySpark |
 | Authentication | None (internal Docker network only) |
 | Exposed namespaces | All four Iceberg namespaces |
-| Execution mode | `local[*]` |
+| Response format | JSON |
 
 ### 8.5 Grafana Data Source
 
 | Setting | Value |
 |---|---|
-| Plugin | Apache Hive datasource |
-| Host | `spark-thrift` |
-| Port | 10000 |
+| Plugin | Infinity datasource (yesoreyeram-infinity-datasource) |
+| Host | `query-api` |
+| Port | 8000 |
 | Database | `atmosphere` |
 | Authentication | Anonymous |
 | Refresh interval | 5 seconds |
@@ -446,7 +447,7 @@ flowchart TD
 | polaris | 1 GB | — | 8181 |
 | postgres | 1 GB | — | 5432 |
 | spark-unified | 14 GB | NVIDIA GPU | 4040 |
-| spark-thrift | 2 GB | — | 10000, 4044 |
+| query-api | 2 GB | — | 8000 |
 | grafana | 512 MB | — | 3000 |
 | cloudflared | 256 MB | — | — |
 
@@ -507,7 +508,7 @@ The system satisfies all requirements when:
 
 Formal test suites are planned for a post-MVP phase. During development, validation follows this approach:
 
-- **Smoke tests:** SQL queries via Spark Thrift to verify row counts and data presence across all layers
+- **Smoke tests:** SQL queries via the Query API to verify row counts and data presence across all layers
 - **Spot-checks:** Manual comparison of raw JSON against staging and core column values for sampled events
 - **Pipeline monitoring:** The `mart_pipeline_health` table and Pipeline Health dashboard row provide continuous self-monitoring. Processing lag exceeding 30 seconds indicates a bottleneck
 - **Sentiment validation:** Manual inspection of posts with extreme sentiment scores to verify plausibility
@@ -565,7 +566,7 @@ The `mart_pipeline_health` table provides continuous visibility into pipeline st
 | rustfs | HTTP GET to health endpoint | 10s |
 | polaris | HTTP GET to `/api/v1/config` | 10s |
 | postgres | `pg_isready` | 10s |
-| spark-thrift | TCP connect to port 10000 | 10s |
+| query-api | HTTP GET /health on port 8000 | 10s |
 | grafana | HTTP GET to `/api/health` | 10s |
 
 ### 11.3 Container Restart Policies
@@ -608,5 +609,5 @@ The Pipeline Health dashboard row (Row 5) visualizes the metrics from `mart_pipe
 | **rkey** | Record Key — a unique identifier for a record within a collection, typically a TID |
 | **RustFS** | An Apache 2.0-licensed, S3-API-compatible object storage server |
 | **Structured Streaming** | Spark's stream processing engine that treats live data streams as continuously appended tables |
-| **Thrift Server** | Spark's built-in HiveServer2-compatible JDBC endpoint for SQL query serving |
+| **Query API** | A custom FastAPI + PySpark REST service that reads Iceberg tables and serves JSON query results to Grafana |
 | **XLM-RoBERTa** | A cross-lingual transformer model trained on 100+ languages, used for multilingual sentiment classification |

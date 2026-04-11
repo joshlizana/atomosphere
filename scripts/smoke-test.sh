@@ -101,8 +101,8 @@ fi
 # ==========================================================
 print_header "AC-01: Container Health"
 
-EXPECTED_SERVICES=(rustfs polaris postgres spark-unified)
-OPTIONAL_SERVICES=(spark-thrift grafana cloudflared)
+EXPECTED_SERVICES=(rustfs polaris postgres spark-unified query-api)
+OPTIONAL_SERVICES=(grafana cloudflared)
 
 for svc in "${EXPECTED_SERVICES[@]}"; do
     svc_state=$(docker compose ps --format '{{.State}}' "$svc" 2>/dev/null || echo "missing")

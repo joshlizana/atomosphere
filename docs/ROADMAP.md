@@ -57,7 +57,7 @@ flowchart TD
 | **M3: Staging** | Collection parsing, typed staging tables | Staging layer, 6 staging tables |
 | **M4: Core + Mart** | Enrichment, extraction, aggregation | Core layer, 4 core tables, 5 mart tables, 4 views |
 | **M5: Sentiment** | GPU-accelerated ML inference | Sentiment layer, core_post_sentiment. All 4 layers consolidated into spark-unified |
-| **M6: Dashboard** | Grafana with 5 analytical sections | spark-thrift, Grafana provisioning, 17+ panels |
+| **M6: Dashboard** | Grafana with 5 analytical sections | query-api, Grafana provisioning, 17+ panels |
 | **M7: Public Access** | Cloudflare Tunnel, public URL | cloudflared container, domain configuration |
 | **M8: Hardening** | Retention, monitoring validation, documentation | Data lifecycle, smoke tests, final documentation |
 
@@ -348,25 +348,25 @@ SELECT primary_lang, sentiment_label, COUNT(*)
 
 ## 8. M6: Dashboard
 
-**Objective:** Deploy Spark Thrift Server for JDBC query serving and build the five-section Grafana dashboard with provisioned data source and panels.
+**Objective:** Deploy the Query API for REST query serving and build the five-section Grafana dashboard with provisioned data source and panels.
 
 **Requirements addressed:** FR-19, FR-20, FR-21, FR-22, NFR-04, NFR-08, NFR-13, NFR-14
 
-### Component 6.1: Spark Thrift Server
+### Component 6.1: Query API
 
 | # | Task | Output |
 |---|---|---|
-| 6.1.1 | Write `spark/serving/thrift_server.sh` — start script for Spark Thrift Server in `local[*]` mode with Iceberg catalog config | `spark/serving/thrift_server.sh` |
-| 6.1.2 | Define `spark-thrift` service in Compose (10 GB, ports 10000 + 4044, connected to both `atmosphere-data` and `atmosphere-frontend` networks, depends_on init, TCP health check on 10000) | `docker-compose.yml` |
-| 6.1.3 | Verify JDBC connectivity — `beeline` or test query against `atmosphere.raw.raw_events` | Manual test |
+| 6.1.1 | Write `spark/serving/query_api.py` — FastAPI + PySpark REST API with Iceberg catalog config | `spark/serving/query_api.py` |
+| 6.1.2 | Define `query-api` service in Compose (2 GB, port 8000, connected to both `atmosphere-data` and `atmosphere-frontend` networks, depends_on init, HTTP health check on 8000) | `docker-compose.yml` |
+| 6.1.3 | Verify REST API connectivity — HTTP query against `atmosphere.raw.raw_events` | Manual test |
 
 ### Component 6.2: Grafana Provisioning
 
 | # | Task | Output |
 |---|---|---|
-| 6.2.1 | Write `grafana/provisioning/datasources/hive.yml` — Apache Hive datasource pointing to `spark-thrift:10000`, database `atmosphere` | `grafana/provisioning/datasources/hive.yml` |
+| 6.2.1 | Write `grafana/provisioning/datasources/infinity.yml` — Infinity datasource pointing to `query-api:8000` | `grafana/provisioning/datasources/infinity.yml` |
 | 6.2.2 | Write `grafana/provisioning/dashboards/dashboard.yml` — dashboard provisioning config pointing to `/var/lib/grafana/dashboards` | `grafana/provisioning/dashboards/dashboard.yml` |
-| 6.2.3 | Define `grafana` service in Compose (2 GB, port 3000, `atmosphere-frontend` network, depends_on spark-thrift, health check on `/api/health`, `grafana-data` volume) | `docker-compose.yml` |
+| 6.2.3 | Define `grafana` service in Compose (2 GB, port 3000, `atmosphere-frontend` network, depends_on query-api, health check on `/api/health`, `grafana-data` volume) | `docker-compose.yml` |
 | 6.2.4 | Verify Grafana starts with pre-configured data source — no manual setup required | Manual test |
 
 ### Component 6.3: Dashboard — Row 1: Sentiment Live Feed
@@ -429,7 +429,7 @@ SELECT primary_lang, sentiment_label, COUNT(*)
 curl http://localhost:3000/api/health   → {"status":"ok"}
 
 # Verify data source:
-# Grafana → Configuration → Data Sources → Apache Hive → "Test" → Success
+# Grafana → Configuration → Data Sources → Infinity → "Test" → Success
 
 # Verify dashboard:
 # Open http://localhost:3000 → Atmosphere dashboard

@@ -12,15 +12,20 @@ RUN curl -fSL -o /opt/spark/jars/iceberg-spark-runtime-${SPARK_ICEBERG_COMPAT}_$
     curl -fSL -o /opt/spark/jars/iceberg-aws-bundle-${ICEBERG_VERSION}.jar \
     "https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-aws-bundle/${ICEBERG_VERSION}/iceberg-aws-bundle-${ICEBERG_VERSION}.jar"
 
-RUN pip install --no-cache-dir websocket-client pyarrow
+RUN pip install --no-cache-dir websocket-client pyarrow fastapi uvicorn
 
 COPY conf/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
+COPY conf/spark-defaults-query.conf /opt/spark/conf-query/spark-defaults.conf
 COPY sources/ /opt/spark/work-dir/spark/sources/
 COPY ingestion/ /opt/spark/work-dir/spark/ingestion/
 COPY transforms/ /opt/spark/work-dir/spark/transforms/
+COPY serving/ /opt/spark/work-dir/spark/serving/
 
 RUN mkdir -p /opt/spark/checkpoints && chown spark:spark /opt/spark/checkpoints
 
 USER spark
 
-ENV PYTHONPATH="/opt/spark/work-dir"
+ENV JAVA_HOME=/opt/java/openjdk
+ENV SPARK_HOME=/opt/spark
+ENV PATH="${SPARK_HOME}/bin:${PATH}"
+ENV PYTHONPATH="/opt/spark/work-dir:/opt/spark/python:/opt/spark/python/lib/py4j-0.10.9.9-src.zip"

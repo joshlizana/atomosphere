@@ -34,7 +34,10 @@ All layers run in one SparkSession (14 GB container, ~22 GB total stack). Infras
 | `spark/transforms/sql/` | SQL transforms: `staging/`, `core/`, `mart/` subdirectories |
 | `spark/conf/spark-defaults.conf` | Spark + Iceberg catalog + memory tuning config |
 | `spark/Dockerfile.sentiment` | Unified CUDA + Spark + baked XLM-RoBERTa model image |
-| `spark/Dockerfile` | Base Spark image (spark-thrift only) |
+| `spark/Dockerfile` | Base Spark image (query-api) |
+| `spark/serving/query_api.py` | REST API serving mart queries to Grafana via Infinity datasource |
+| `spark/conf/spark-defaults-query.conf` | Spark config for query-api (lighter weight, no streaming) |
+| `grafana/provisioning/` | Grafana datasource + dashboard provisioning configs |
 | `infra/init/setup.py` | Idempotent S3 bucket + Polaris catalog bootstrap |
 | `docker-compose.yml` | All services, dependency chain, resource limits (~22 GB total) |
 | `docs/TRD.md` | Technical Requirements — FR/NFR IDs, acceptance criteria |
@@ -65,7 +68,8 @@ make smoke-test # Run acceptance test suite (waits for data, then validates all 
 - **Table creation:** `CREATE TABLE IF NOT EXISTS` (FR-25) — idempotent on every startup
 - **Streaming trigger:** `processingTime="5 seconds"` on all streaming queries (FR-10)
 - **Unified process:** All 4 streaming layers run in one `spark-unified` container. Each module exposes `start_queries(spark)` for the unified entrypoint, and `main()` for standalone debugging.
-- **Memory budget:** ~22 GB total stack (14 GB spark-unified, 3 GB RustFS, 1 GB each for Postgres/Polaris). Designed for 32 GB workstations.
+- **Query serving:** `query-api` container runs FastAPI + PySpark, reads Iceberg tables directly via Polaris, serves JSON to Grafana's Infinity datasource plugin. Replaces the originally-planned Spark Thrift Server (no Hive plugin exists for Grafana).
+- **Memory budget:** ~22 GB total stack (14 GB spark-unified, 3 GB RustFS, 2 GB query-api, 1 GB each for Postgres/Polaris, 512 MB Grafana). Designed for 32 GB workstations.
 
 ## Linear Workflow
 

@@ -1,0 +1,28 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["atmosphere", "bluesky"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
+  "timezone": "browser",
+  "title": "Atmosphere — Bluesky Analytics",
+  "uid": "atmosphere-main",
+  "version": 1
+}

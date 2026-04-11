@@ -21,7 +21,7 @@ You are responsible for creating and modifying these files:
 - `spark/transforms/sql/staging/stg_*.sql` — 6 staging SQL transforms
 - `spark/transforms/sql/core/core_*.sql` — 4 core SQL transforms
 - `spark/transforms/sql/mart/mart_*.sql` — 9 mart SQL transforms (5 materialized + 4 views)
-- `spark/serving/` — Thrift Server scripts
+- `spark/serving/` — Query API (FastAPI + PySpark REST service)
 
 Do NOT modify: `spark/Dockerfile.sentiment`, `spark/transforms/sentiment.py` (owned by ml-sentiment), `grafana/`, `infra/`, `docker-compose.yml` (owned by infra).
 

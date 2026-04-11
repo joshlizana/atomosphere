@@ -150,10 +150,71 @@ services:
             - capabilities: [gpu]
     restart: unless-stopped
 
+  # --- Query API (Grafana data source) ---
+
+  query-api:
+    build:
+      context: ./spark
+      dockerfile: Dockerfile
+    container_name: query-api
+    command:
+      - python3
+      - /opt/spark/work-dir/spark/serving/query_api.py
+    ports:
+      - "8000:8000"
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+      SPARK_CONF_DIR: /opt/spark/conf-query
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    networks:
+      - atmosphere-data
+      - atmosphere-frontend
+    mem_limit: 2g
+    restart: unless-stopped
+
+  # --- Grafana Dashboard ---
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/atmosphere.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      query-api:
+        condition: service_healthy
+    networks:
+      - atmosphere-frontend
+    mem_limit: 512m
+    restart: unless-stopped
+
 volumes:
   rustfs-data:
   postgres-data:
   spark-checkpoints:
+  grafana-data:
 
 networks:
   atmosphere-data:

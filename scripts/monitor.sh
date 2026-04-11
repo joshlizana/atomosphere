@@ -59,8 +59,8 @@ LOG_TAIL_LINES=100
 # Throughput: minimum events/sec to consider healthy
 THROUGHPUT_WINDOW=60  # seconds to measure over
 
-# Services (unified single process)
-SERVICES=(spark-unified)
+# Services
+SERVICES=(spark-unified query-api)
 
 # --- Parse args ---
 while [[ $# -gt 0 ]]; do

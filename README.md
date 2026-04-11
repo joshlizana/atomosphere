@@ -18,20 +18,26 @@ flowchart LR
     SU --> CORE[Core / Mart]
     CORE --> SU
     SU --> SOUT[Sentiment]
+    CORE --> QA[query-api]
+    SOUT --> QA
+    QA --> GF[Grafana]
 
     style JS fill:#0085ff,color:#fff
     style SU fill:#76b900,color:#fff
+    style QA fill:#e6522c,color:#fff
+    style GF fill:#f46800,color:#fff
 ```
 
-One unified Spark process running 5 streaming queries in a single JVM with 5-second micro-batch triggers, reading upstream Iceberg tables. The entire pipeline fits in ~22 GB of RAM.
+One unified Spark process running 5 streaming queries in a single JVM with 5-second micro-batch triggers, reading upstream Iceberg tables. A custom REST API (`query-api`) serves mart query results to Grafana via the Infinity datasource plugin. The entire stack fits in ~22 GB of RAM.
 
 ## Tech Stack
 
 | Technology | Role |
 |---|---|
-| Apache Spark 4.x | Unified engine (ingest, stream, transform, ML, serve) |
+| Apache Spark 4.x | Unified engine (ingest, stream, transform, ML) |
 | Apache Iceberg | Table format (ACID, time travel) |
-| Grafana | Live dashboards |
+| FastAPI + PySpark | Custom REST API for query serving |
+| Grafana + Infinity | Live dashboards with JSON datasource |
 | RustFS | S3-compatible object storage |
 | Apache Polaris | Iceberg REST catalog |
 | XLM-RoBERTa | Multilingual sentiment model (100+ languages) |
@@ -43,6 +49,7 @@ One unified Spark process running 5 streaming queries in a single JVM with 5-sec
 - **Custom DataSource V2** -- PySpark WebSocket source with reconnection, failover, and cursor rewind
 - **Medallion architecture** -- Raw (JSON) -> Staging (6 typed tables) -> Core (enriched + extracted) -> Mart (aggregated analytics)
 - **GPU sentiment analysis** -- XLM-RoBERTa baked into a CUDA container, batch inference via `mapInPandas`
+- **Custom query API** -- FastAPI + PySpark REST service reading Iceberg tables, serving Grafana via Infinity datasource
 
 ## Project Structure
 
@@ -56,6 +63,8 @@ spark/
     core.py                      # Core + mart layer
     sentiment.py                 # GPU inference layer
     sql/                         # 6 staging + 4 core + 9 mart SQL transforms
+  serving/query_api.py           # REST API for Grafana (FastAPI + PySpark)
+grafana/                         # Provisioning configs + dashboard JSON
 scripts/                         # Health monitor, maintenance, replay
 infra/init/                      # S3 bucket + catalog bootstrap
 docs/                            # TDD, TRD, BRD, Roadmap
@@ -87,7 +96,7 @@ Once running, open Grafana at [http://localhost:3000](http://localhost:3000) to 
 | Command | Description |
 |---|---|
 | `make up` | Build and start all services |
-| `make down` | Stop and remove containers + volumes |
+| `make down` | Stop and remove containers |
 | `make logs` | Tail all logs |
 | `make status` | Show container status |
 | `make clean` | Full teardown (containers + volumes) |
@@ -103,8 +112,8 @@ Once running, open Grafana at [http://localhost:3000](http://localhost:3000) to 
 | M2: Ingestion | Done |
 | M3: Staging | Done |
 | M4: Core + Mart | Done |
-| M5: Sentiment | In progress |
-| M6: Dashboard | Not started |
+| M5: Sentiment | Done |
+| M6: Dashboard | In progress |
 | M7: Public Access | Not started |
 | M8: Hardening | Not started |
 

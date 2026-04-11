@@ -26,9 +26,9 @@ Do NOT modify files owned by other agents: `spark/`, `grafana/`.
 ## Architecture Rules
 
 ### Dual-Network Topology
-- `atmosphere-data` network: postgres, polaris, rustfs, init, spark-unified, spark-thrift
-- `atmosphere-frontend` network: spark-thrift, grafana, cloudflared
-- `spark-thrift` bridges both networks — it must be on both
+- `atmosphere-data` network: postgres, polaris, rustfs, init, spark-unified, query-api
+- `atmosphere-frontend` network: query-api, grafana, cloudflared
+- `query-api` bridges both networks — it must be on both
 - `spark-unified` runs all streaming layers (ingest, staging, core, sentiment) in a single JVM
 
 ### Container Requirements
@@ -42,7 +42,7 @@ Every container definition must include:
 Total memory across all containers must stay within ~22 GB (NFR-09, 32 GB workstation with 8 GB host reserve):
 - spark-unified: 14 GB (all streaming layers + GPU)
 - rustfs: 3 GB
-- spark-thrift: 2 GB
+- query-api: 2 GB
 - polaris: 1 GB
 - postgres: 1 GB
 - init: 512 MB (runs once, exits)
@@ -55,7 +55,7 @@ postgres → polaris
 rustfs (independent)
 polaris + rustfs → init
 init → spark-unified
-init → spark-thrift → grafana → cloudflared
+init → query-api → grafana → cloudflared
 ```
 
 ### Init Container

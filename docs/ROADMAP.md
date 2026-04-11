@@ -53,10 +53,10 @@ flowchart TD
 | Milestone | Summary | Key Deliverables |
 |---|---|---|
 | **M1: Foundation** | Infrastructure containers, storage, catalog, namespaces | docker-compose.yml, init container, RustFS, Polaris, PostgreSQL |
-| **M2: Ingestion** | Custom WebSocket data source, raw event capture | JetstreamDataSource, spark-ingest, raw_events table |
-| **M3: Staging** | Collection parsing, typed staging tables | spark-staging, 6 staging tables |
-| **M4: Core + Mart** | Enrichment, extraction, aggregation | spark-core, 4 core tables, 5 mart tables, 4 views |
-| **M5: Sentiment** | GPU-accelerated ML inference | spark-sentiment, core_post_sentiment table |
+| **M2: Ingestion** | Custom WebSocket data source, raw event capture | JetstreamDataSource, ingest layer, raw_events table |
+| **M3: Staging** | Collection parsing, typed staging tables | Staging layer, 6 staging tables |
+| **M4: Core + Mart** | Enrichment, extraction, aggregation | Core layer, 4 core tables, 5 mart tables, 4 views |
+| **M5: Sentiment** | GPU-accelerated ML inference | Sentiment layer, core_post_sentiment. All 4 layers consolidated into spark-unified |
 | **M6: Dashboard** | Grafana with 5 analytical sections | spark-thrift, Grafana provisioning, 17+ panels |
 | **M7: Public Access** | Cloudflare Tunnel, public URL | cloudflared container, domain configuration |
 | **M8: Hardening** | Retention, monitoring validation, documentation | Data lifecycle, smoke tests, final documentation |
@@ -121,7 +121,7 @@ curl http://localhost:8181/api/v1/config   → 200 OK
 
 ## 4. M2: Ingestion
 
-**Objective:** Build the custom PySpark DataSource V2 that wraps the Jetstream WebSocket and deploy spark-ingest to write raw events into Iceberg.
+**Objective:** Build the custom PySpark DataSource V2 that wraps the Jetstream WebSocket and deploy the ingest layer to write raw events into Iceberg.
 
 **Requirements addressed:** FR-01, FR-02, FR-03, FR-04, NFR-01, NFR-02, NFR-06
 
@@ -139,15 +139,15 @@ curl http://localhost:8181/api/v1/config   → 200 OK
 | 2.1.8 | Implement server failover — rotate through Jetstream public instances on repeated failure | `spark/sources/jetstream_source.py` |
 | 2.1.9 | Implement malformed JSON handling — log and skip bad events | `spark/sources/jetstream_source.py` |
 
-### Component 2.2: spark-ingest Application
+### Component 2.2: Ingest Layer Application
 
 | # | Task | Output |
 |---|---|---|
 | 2.2.1 | Write `spark/ingestion/ingest_raw.py` — Structured Streaming job reading from `JetstreamDataSource` | `spark/ingestion/ingest_raw.py` |
 | 2.2.2 | Configure `trigger(processingTime="5 seconds")` micro-batch trigger | `spark/ingestion/ingest_raw.py` |
 | 2.2.3 | Create `atmosphere.raw.raw_events` table on first write (`CREATE TABLE IF NOT EXISTS`) with partition scheme `days(ingested_at), collection` and sort order `ingested_at ASC` | `spark/ingestion/ingest_raw.py` |
-| 2.2.4 | Configure Spark checkpoint to named Docker volume (`spark-ingest-checkpoints`) | `spark/ingestion/ingest_raw.py` |
-| 2.2.5 | Define `spark-ingest` service in Compose (8 GB, port 4040, depends_on init, `restart: unless-stopped`, `spark-ingest-checkpoints` volume) | `docker-compose.yml` |
+| 2.2.4 | Configure Spark checkpoint to `spark-checkpoints/ingest-raw/` subdirectory | `spark/ingestion/ingest_raw.py` |
+| 2.2.5 | Define ingest layer in spark-unified service (14 GB, port 4040, depends_on init, `restart: unless-stopped`) | `docker-compose.yml` |
 
 ### Checkpoint: M2 Complete
 
@@ -181,7 +181,7 @@ SELECT COUNT(*) FROM atmosphere.raw.raw_events
 | 3.1.5 | Write SQL for `stg_blocks` — extract `subject_did`, `created_at` | `spark/transforms/sql/staging/stg_blocks.sql` |
 | 3.1.6 | Write SQL for `stg_profiles` — extract `display_name`, `description` | `spark/transforms/sql/staging/stg_profiles.sql` |
 
-### Component 3.2: spark-staging Application
+### Component 3.2: Staging Layer Application
 
 | # | Task | Output |
 |---|---|---|
@@ -189,8 +189,8 @@ SELECT COUNT(*) FROM atmosphere.raw.raw_events
 | 3.2.2 | Route events by `collection` field to the appropriate staging SQL transform | `spark/transforms/staging.py` |
 | 3.2.3 | Derive `event_time` from `time_us`: `TIMESTAMP(time_us / 1000000)` | `spark/transforms/staging.py` |
 | 3.2.4 | Create all six staging tables on first write with partition scheme `days(event_time)` and sort order `event_time ASC` | `spark/transforms/staging.py` |
-| 3.2.5 | Configure checkpoint to `spark-staging-checkpoints` volume | `spark/transforms/staging.py` |
-| 3.2.6 | Define `spark-staging` service in Compose (8 GB, port 4041, depends_on spark-ingest, `restart: unless-stopped`) | `docker-compose.yml` |
+| 3.2.5 | Configure checkpoint to `spark-checkpoints/staging/` subdirectory | `spark/transforms/staging.py` |
+| 3.2.6 | Define staging layer in spark-unified service | `docker-compose.yml` |
 
 ### Checkpoint: M3 Complete
 
@@ -245,7 +245,7 @@ SELECT text, created_at, langs, embed_type FROM atmosphere.staging.stg_posts LIM
 | 4.3.3 | Write SQL for `mart_most_mentioned` view — top mentioned accounts over configurable window | `spark/transforms/sql/mart/mart_most_mentioned.sql` |
 | 4.3.4 | Write SQL for `mart_content_breakdown` view — original vs. reply, text-only vs. media, embed type distribution | `spark/transforms/sql/mart/mart_content_breakdown.sql` |
 
-### Component 4.4: spark-core Application
+### Component 4.4: Core Layer Application
 
 | # | Task | Output |
 |---|---|---|
@@ -254,8 +254,8 @@ SELECT text, created_at, langs, embed_type FROM atmosphere.staging.stg_posts LIM
 | 4.4.3 | Execute mart materialization SQL on each micro-batch for the 5 materialized tables | `spark/transforms/core.py` |
 | 4.4.4 | Register the 4 mart views via `CREATE OR REPLACE VIEW` | `spark/transforms/core.py` |
 | 4.4.5 | Create all core and mart tables on first write with partition scheme `days(event_time)` | `spark/transforms/core.py` |
-| 4.4.6 | Configure checkpoint to `spark-core-checkpoints` volume | `spark/transforms/core.py` |
-| 4.4.7 | Define `spark-core` service in Compose (10 GB, port 4042, depends_on spark-staging, `restart: unless-stopped`) | `docker-compose.yml` |
+| 4.4.6 | Configure checkpoint to `spark-checkpoints/core/` subdirectory | `spark/transforms/core.py` |
+| 4.4.7 | Define core layer in spark-unified service | `docker-compose.yml` |
 
 ### Checkpoint: M4 Complete
 
@@ -304,15 +304,15 @@ SELECT * FROM atmosphere.mart.mart_trending_hashtags LIMIT 10;
 | 5.2.3 | Produce output columns: `sentiment_positive`, `sentiment_negative`, `sentiment_neutral`, `sentiment_label`, `sentiment_confidence` | `spark/transforms/sentiment.py` |
 | 5.2.4 | Validate scores sum to 1.0 within floating-point tolerance | `spark/transforms/sentiment.py` |
 
-### Component 5.3: spark-sentiment Application
+### Component 5.3: Sentiment Layer Application
 
 | # | Task | Output |
 |---|---|---|
 | 5.3.1 | Write `spark/transforms/sentiment.py` — Structured Streaming job reading `atmosphere.core.core_posts` via Iceberg `readStream` | `spark/transforms/sentiment.py` |
 | 5.3.2 | Apply `mapInPandas` with the `predict_sentiment` function | `spark/transforms/sentiment.py` |
 | 5.3.3 | Create `atmosphere.core.core_post_sentiment` table on first write with partition scheme `days(event_time)` | `spark/transforms/sentiment.py` |
-| 5.3.4 | Configure checkpoint to `spark-sentiment-checkpoints` volume | `spark/transforms/sentiment.py` |
-| 5.3.5 | Define `spark-sentiment` service in Compose (16 GB, port 4043, GPU reservation via `deploy.resources.reservations.devices`, depends_on spark-core, `restart: unless-stopped`) | `docker-compose.yml` |
+| 5.3.4 | Configure checkpoint to `spark-checkpoints/sentiment/` subdirectory | `spark/transforms/sentiment.py` |
+| 5.3.5 | Define sentiment layer in spark-unified service (14 GB total, GPU reservation via `deploy.resources.reservations.devices`, `restart: unless-stopped`) | `docker-compose.yml` |
 
 ### Component 5.4: Sentiment Mart Activation
 
@@ -492,8 +492,8 @@ curl -I https://atmosphere.yourdomain.com   → 200 OK
 |---|---|---|
 | 8.2.1 | Run full acceptance criteria checklist (TRD §9.1, AC-01 through AC-06) | Validation report |
 | 8.2.2 | Verify disconnect recovery — kill WebSocket, confirm gapless cursor replay | Validation report |
-| 8.2.3 | Verify container restart recovery — `docker restart` each Spark container, confirm checkpoint resume | Validation report |
-| 8.2.4 | Verify stale data handling — stop spark-core, confirm Grafana retains last known data | Validation report |
+| 8.2.3 | Verify container restart recovery — `docker restart spark-unified`, confirm checkpoint resume | Validation report |
+| 8.2.4 | Verify stale data handling — stop spark-unified, confirm Grafana retains last known data | Validation report |
 | 8.2.5 | Verify cold start — `make clean && make up`, confirm full stack operational within 5 minutes | Validation report |
 | 8.2.6 | Verify reproducibility — `git clone` on a fresh host, `make up`, confirm working system | Validation report |
 
@@ -510,7 +510,7 @@ curl -I https://atmosphere.yourdomain.com   → 200 OK
 
 ```
 # Full system operational:
-# - 12 containers healthy
+# - all containers healthy
 # - Data flowing through all 4 layers
 # - Sentiment scoring every post
 # - Dashboard live at public URL with 5-second refresh
@@ -567,7 +567,7 @@ Every functional and non-functional requirement from the TRD maps to a milestone
 | NFR-06 | Gapless disconnect recovery | M2 | 2.1.7 |
 | NFR-07 | Checkpoint-based restart recovery | M2–M5 | 2.2.4, 3.2.5, 4.4.6, 5.3.4 |
 | NFR-08 | Stale data display in Grafana | M6, M8 | 6.7.1–6.7.3, 8.2.4 |
-| NFR-09 | ~76 GB total memory allocation | M1–M7 | All service definitions |
+| NFR-09 | ~22 GB total memory allocation | M1–M7 | All service definitions |
 | NFR-10 | ~32 GB host headroom | M1 | 1.2.1–1.2.3, all service definitions |
 | NFR-11 | Automatic GPU/CPU adaptation | M5 | 5.2.2 |
 | NFR-12 | Reproducible environment | M1, M8 | 1.1.1–1.1.4, 8.2.6 |

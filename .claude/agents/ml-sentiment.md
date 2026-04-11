@@ -87,7 +87,7 @@ All three probability scores must sum to 1.0 within floating-point tolerance.
 2. Select `did`, `rkey`, `event_time`, `text`, `primary_lang`
 3. Apply `mapInPandas(predict_sentiment, output_schema)`
 4. Write to `atmosphere.core.core_post_sentiment` with `days(event_time)` partitioning
-5. Checkpoint to `spark-sentiment-checkpoints` volume
+5. Checkpoint to `spark-checkpoints/sentiment/` subdirectory
 6. Trigger: `processingTime="5 seconds"`
 
 ### Data Quality (NFR-16)
@@ -95,10 +95,10 @@ All three probability scores must sum to 1.0 within floating-point tolerance.
 - Handle edge cases: empty text → neutral with low confidence; None text → skip with warning
 
 ## Container Resources
-- Memory: 16 GB
+- Memory: 14 GB (shared with all layers in spark-unified)
 - GPU: NVIDIA GPU reservation via `deploy.resources.reservations.devices`
-- Port: 4043 (Spark UI)
-- Depends on: spark-core
+- Port: 4040 (Spark UI, shared)
+- Depends on: core layer (runs within spark-unified)
 
 ## Mart Integration (M5 tasks)
 After sentiment data flows, update two placeholder mart transforms:

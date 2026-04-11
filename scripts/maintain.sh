@@ -12,7 +12,7 @@ set -uo pipefail
 
 # --- Configuration ---
 DRY_RUN=false
-SPARK_SQL_CONTAINER="spark-core"
+SPARK_SQL_CONTAINER="spark-unified"
 SNAPSHOT_RETAIN_DAYS=1
 LOG_FILE="logs/maintain.log"
 

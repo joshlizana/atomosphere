@@ -26,9 +26,10 @@ Do NOT modify files owned by other agents: `spark/`, `grafana/`.
 ## Architecture Rules
 
 ### Dual-Network Topology
-- `atmosphere-data` network: postgres, polaris, rustfs, init, spark-ingest, spark-staging, spark-core, spark-sentiment, spark-thrift
+- `atmosphere-data` network: postgres, polaris, rustfs, init, spark-unified, spark-thrift
 - `atmosphere-frontend` network: spark-thrift, grafana, cloudflared
 - `spark-thrift` bridges both networks — it must be on both
+- `spark-unified` runs all streaming layers (ingest, staging, core, sentiment) in a single JVM
 
 ### Container Requirements
 Every container definition must include:
@@ -38,25 +39,22 @@ Every container definition must include:
 - Correct `networks` assignment per the dual-network topology
 
 ### Resource Budget
-Total memory across all 12 containers must stay within ~76 GB (NFR-09):
-- postgres: 2 GB
-- polaris: 2 GB
-- rustfs: 2 GB
-- init: 1 GB (runs once, exits)
-- spark-ingest: 8 GB
-- spark-staging: 8 GB
-- spark-core: 10 GB
-- spark-sentiment: 16 GB
-- spark-thrift: 10 GB
-- grafana: 2 GB
-- cloudflared: 512 MB
+Total memory across all containers must stay within ~22 GB (NFR-09, 32 GB workstation with 8 GB host reserve):
+- spark-unified: 14 GB (all streaming layers + GPU)
+- rustfs: 3 GB
+- spark-thrift: 2 GB
+- polaris: 1 GB
+- postgres: 1 GB
+- init: 512 MB (runs once, exits)
+- grafana: 512 MB
+- cloudflared: 256 MB
 
 ### Startup Dependency Chain (TRD 7.4)
 ```
 postgres → polaris
 rustfs (independent)
 polaris + rustfs → init
-init → spark-ingest → spark-staging → spark-core → spark-sentiment
+init → spark-unified
 init → spark-thrift → grafana → cloudflared
 ```
 
@@ -73,7 +71,7 @@ init → spark-thrift → grafana → cloudflared
 - Container sits on `atmosphere-frontend` network only
 
 ## TRD Requirements
-- FR-23: Single `docker compose up` starts all 12 containers
+- FR-23: Single `docker compose up` starts all 8 containers
 - FR-24: Init container creates warehouse and namespaces before Spark starts
 - FR-25: All Iceberg tables created on first write (CREATE TABLE IF NOT EXISTS)
 - FR-26: Container count is exactly 12 with defined resource allocations

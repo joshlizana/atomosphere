@@ -52,7 +52,7 @@ This document covers all technical requirements for the Atmosphere platform, inc
 - Stream processing through a four-layer medallion architecture
 - GPU-accelerated multilingual sentiment analysis
 - Live Grafana dashboard with public access via Cloudflare Tunnel
-- Docker Compose-based 12-container orchestration
+- Docker Compose-based 8-container orchestration
 
 ---
 
@@ -167,7 +167,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 | FR-11 | Critical | Every post receives a three-class sentiment score | `core_post_sentiment` contains `sentiment_positive`, `sentiment_negative`, `sentiment_neutral` (floats summing to 1.0), `sentiment_label` (argmax), and `sentiment_confidence` (max score) for every row in `core_posts` |
 | FR-12 | Critical | Sentiment inference runs via `mapInPandas` with batch processing | The HuggingFace pipeline processes texts at `batch_size=64`, achieving 200–500 texts/sec on GPU |
 | FR-13 | High | The sentiment model covers 100+ languages | Posts in English, Japanese, Korean, Spanish, German, French, and other languages all receive sentiment scores in a single forward pass |
-| FR-14 | High | The model is embedded in the Docker image at build time | The spark-sentiment container starts and begins inference with zero runtime downloads |
+| FR-14 | High | The model is embedded in the Docker image at build time | The spark-unified container starts and begins inference with zero runtime downloads |
 
 ### 5.4 Mart Layer
 
@@ -191,7 +191,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Priority | Requirement | Acceptance Criteria |
 |---|---|---|---|
-| FR-23 | Critical | The full stack starts from a single command | `make up` starts all 12 containers (init, rustfs, polaris, postgres, 5 Spark apps, grafana, cloudflared) with correct dependency ordering |
+| FR-23 | Critical | The full stack starts from a single command | `make up` starts all 8 containers (init, rustfs, polaris, postgres, spark-unified, spark-thrift, grafana, cloudflared) with correct dependency ordering |
 | FR-24 | Critical | Initialization is idempotent | The init container creates RustFS buckets, Polaris warehouse, and Iceberg namespaces only if they do not already exist. Subsequent runs are safe |
 | FR-25 | Critical | Each Spark application creates its own tables on first write | `CREATE TABLE IF NOT EXISTS` semantics ensure tables are created automatically without manual DDL |
 | FR-26 | High | All containers use health checks for dependency ordering | Docker Compose `depends_on` with `condition: service_healthy` enforces the startup chain |
@@ -206,7 +206,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 |---|---|---|---|
 | NFR-01 | End-to-end latency from Jetstream event to dashboard display | < 10 seconds | Delta between event `time_us` and Grafana query response time, measured via `mart_pipeline_health` |
 | NFR-02 | Sustained ingestion throughput | 240+ events/sec | `mart_pipeline_health` — events ingested per second |
-| NFR-03 | Sentiment inference throughput on GPU | 200–500 texts/sec at batch_size=64 | Timed inference runs on the spark-sentiment container |
+| NFR-03 | Sentiment inference throughput on GPU | 200–500 texts/sec at batch_size=64 | Timed inference runs on the spark-unified container |
 | NFR-04 | Grafana query response time from materialized marts | < 1 second | Observed query latency in Grafana panel inspector |
 | NFR-05 | Cold start time (from `make up` to first panel data) | < 5 minutes | Wall clock time from command execution to Grafana rendering data |
 
@@ -229,7 +229,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Requirement | Target | Measurement |
 |---|---|---|---|
-| NFR-11 | GPU/CPU adaptation | Automatic selection at startup via `torch.cuda.is_available()` | Run spark-sentiment without GPU; verify CPU inference at 5–15 texts/sec |
+| NFR-11 | GPU/CPU adaptation | Automatic selection at startup via `torch.cuda.is_available()` | Run spark-unified without GPU; verify CPU inference at 5–15 texts/sec |
 | NFR-12 | Reproducible environment | `git clone` + `make up` produces a working system | Fresh clone on a compatible host starts all services and renders dashboard data |
 
 ### 6.5 Observability
@@ -262,10 +262,7 @@ flowchart TD
 
     subgraph Docker Compose Stack
         subgraph Compute
-            SI[spark-ingest]
-            SS[spark-staging]
-            SC[spark-core]
-            SM[spark-sentiment\n+ GPU]
+            SU[spark-unified\n+ GPU]
             ST[spark-thrift]
         end
 
@@ -283,9 +280,9 @@ flowchart TD
         INIT[init\nsetup + exit]
     end
 
-    JS -->|WebSocket| SI
-    SI & SS & SC & SM --> RS
-    SI & SS & SC & SM & ST <--> PL
+    JS -->|WebSocket| SU
+    SU --> RS
+    SU & ST <--> PL
     PL --> PG
     ST -->|reads all layers| RS
     GF -->|JDBC| ST
@@ -324,11 +321,8 @@ flowchart TD
     PG[postgres] --> PL[polaris]
     RS[rustfs] --> INIT[init]
     PL --> INIT
-    INIT --> SI[spark-ingest]
+    INIT --> SU[spark-unified]
     INIT --> ST[spark-thrift]
-    SI --> SS[spark-staging]
-    SS --> SC[spark-core]
-    SC --> SM[spark-sentiment]
     ST --> GF[grafana]
     GF --> CF[cloudflared]
 ```
@@ -447,17 +441,14 @@ flowchart TD
 
 | Container | Memory | GPU | Ports |
 |---|---|---|---|
-| init | 1 GB | — | — |
-| rustfs | 16 GB | — | 9000, 9001 |
-| polaris | 2 GB | — | 8181 |
-| postgres | 2 GB | — | 5432 |
-| spark-ingest | 8 GB | — | 4040 |
-| spark-staging | 8 GB | — | 4041 |
-| spark-core | 10 GB | — | 4042 |
-| spark-sentiment | 16 GB | NVIDIA GPU | 4043 |
-| spark-thrift | 10 GB | — | 10000, 4044 |
-| grafana | 2 GB | — | 3000 |
-| cloudflared | 512 MB | — | — |
+| init | 512 MB | — | — |
+| rustfs | 3 GB | — | 9000, 9001 |
+| polaris | 1 GB | — | 8181 |
+| postgres | 1 GB | — | 5432 |
+| spark-unified | 14 GB | NVIDIA GPU | 4040 |
+| spark-thrift | 2 GB | — | 10000, 4044 |
+| grafana | 512 MB | — | 3000 |
+| cloudflared | 256 MB | — | — |
 
 ---
 
@@ -469,7 +460,7 @@ The system satisfies all requirements when:
 
 | # | Criterion | Verification Method |
 |---|---|---|
-| AC-01 | All 12 containers reach healthy state after `make up` | `docker compose ps` shows all services as healthy/running within 5 minutes |
+| AC-01 | All containers reach healthy state after `make up` | `docker compose ps` shows all services as healthy/running within 5 minutes |
 | AC-02 | Data flows through all four medallion layers continuously | Row counts in `raw_events`, staging tables, core tables, and mart tables all increase over a 5-minute observation window |
 | AC-03 | Every post receives a sentiment score | `SELECT COUNT(*) FROM core_post_sentiment` matches `SELECT COUNT(*) FROM core_posts` over any 5-minute window |
 | AC-04 | The Grafana dashboard renders five sections with live data | All five rows (Sentiment, Firehose, Language, Engagement, Pipeline Health) display current data with 5-second refresh |
@@ -485,7 +476,7 @@ The system satisfies all requirements when:
 | Sustained ingestion | Query `mart_pipeline_health` for events/sec over 10 minutes | Sustained ~240 events/sec with zero gaps |
 | Raw event fidelity | Compare 10 random `raw_json` values against the original Jetstream event schema | All fields present and unmodified |
 | Disconnect recovery | Kill the WebSocket connection; observe reconnect behavior | Reconnects within 30 seconds; cursor replay covers the gap |
-| Container restart | `docker restart spark-ingest`; observe checkpoint recovery | Ingestion resumes from last committed offset |
+| Container restart | `docker restart spark-unified`; observe checkpoint recovery | Ingestion resumes from last committed offset |
 
 **Staging (FR-05):**
 
@@ -531,7 +522,7 @@ Formal test suites are planned for a post-MVP phase. During development, validat
 |---|---|---|
 | 1 | `git clone <repository>` | Clone the repository |
 | 2 | `cp .env.example .env` | Configure environment variables (tunnel token, domain) |
-| 3 | `make up` | Start all 12 containers with dependency ordering |
+| 3 | `make up` | Start all 8 containers with dependency ordering |
 | 4 | Verify | `docker compose ps` confirms all services healthy |
 | 5 | Access | Open `http://localhost:3000` (local) or `atmosphere.yourdomain.com` (public) |
 

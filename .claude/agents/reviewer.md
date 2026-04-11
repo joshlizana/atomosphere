@@ -34,7 +34,7 @@ For each FR, verify the corresponding code exists and matches the spec:
 | FR-19–20 | `grafana/dashboards/atmosphere.json` — 5 rows, 5s refresh |
 | FR-21 | `infra/cloudflare/config.yml`, cloudflared in compose |
 | FR-22 | Grafana provisioning files exist and are correctly configured |
-| FR-23–26 | `docker-compose.yml` — 12 containers, resource allocations |
+| FR-23–26 | `docker-compose.yml` — 8 containers, resource allocations |
 
 ### Step 3: Check Each Non-Functional Requirement
 | Requirement | What to Check |
@@ -47,7 +47,7 @@ For each FR, verify the corresponding code exists and matches the spec:
 | NFR-06 | Reconnection with cursor replay implemented |
 | NFR-07 | All streaming jobs checkpoint to named volumes |
 | NFR-08 | Grafana handles stale data gracefully |
-| NFR-09 | Total container memory within ~76 GB |
+| NFR-09 | Total container memory within ~22 GB |
 | NFR-10 | Disk footprint estimation reasonable |
 | NFR-11 | GPU/CPU fallback via `torch.cuda.is_available()` |
 | NFR-12 | `git clone` + `make up` reproducibility |

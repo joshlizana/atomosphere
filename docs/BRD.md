@@ -65,7 +65,7 @@ Atmosphere demonstrates three capabilities valued in data engineering roles:
 | Live public dashboard | A URL accessible to anyone showing real-time Bluesky analytics with 5-second refresh |
 | End-to-end streaming pipeline | Data flows from Jetstream WebSocket to Grafana dashboard within 10 seconds |
 | Multilingual sentiment analysis | Every post scored for sentiment — English, Japanese, Korean, Spanish, German, and 95+ additional languages |
-| Reproducible environment | Any engineer can clone the repository and run `make up` to start the full 12-container stack |
+| Reproducible environment | Any engineer can clone the repository and run `make up` to start the full 8-container stack |
 
 ---
 
@@ -108,7 +108,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | O3 | Score every post for multilingual sentiment | `core_post_sentiment` table contains a sentiment label (`positive`, `negative`, `neutral`) and confidence score for every row in `core_posts` |
 | O4 | Deliver live analytics through a Grafana dashboard | Five dashboard sections — sentiment, firehose activity, language/content, engagement velocity, pipeline health — refreshing every 5 seconds |
 | O5 | Expose the dashboard via a public URL | Dashboard accessible at `atmosphere.yourdomain.com` via Cloudflare Tunnel with outbound-only HTTPS |
-| O6 | Provide a single-command reproducible environment | `make up` starts the full 12-container stack (init, rustfs, polaris, postgres, 5 Spark apps, grafana, cloudflared) from a clean clone |
+| O6 | Provide a single-command reproducible environment | `make up` starts the full 8-container stack (init, rustfs, polaris, postgres, spark-unified, spark-thrift, grafana, cloudflared) from a clean clone |
 
 ---
 
@@ -125,14 +125,14 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | Data storage | 20+ Apache Iceberg tables on RustFS (S3-compatible storage) with Polaris REST catalog |
 | Dashboard | Five-section Grafana dashboard (17+ panels) provisioned as code with Apache Hive datasource plugin |
 | Public access | Cloudflare Tunnel from local machine to public HTTPS URL |
-| Infrastructure | Docker Compose orchestration of 12 containers within a ~76 GB memory budget |
+| Infrastructure | Docker Compose orchestration within a ~22 GB memory budget on a 32 GB workstation |
 | Documentation | BRD (this document), TDD, README |
 
 ### 5.2 Scope Boundaries
 
 | Area | Boundary |
 |---|---|
-| Deployment | Single-node local deployment via Docker Compose on a 128 GB workstation |
+| Deployment | Single-node local deployment via Docker Compose on a 32 GB workstation |
 | Analytics | Aggregate network-level analytics — firehose throughput, sentiment distribution, engagement rates, trending hashtags |
 | Data | Publicly available Bluesky data via the Jetstream WebSocket |
 | History | Live events from the current stream forward; 30-day retention window with depth growing organically |
@@ -169,7 +169,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | NFR-01 | Latency | End-to-end latency from Jetstream event to dashboard display is under 10 seconds |
 | NFR-02 | Throughput | The pipeline sustains 240+ events/sec ingestion; the sentiment model processes ~26 posts/sec at batch_size=64 on GPU with substantial headroom |
 | NFR-03 | Resilience | All long-running containers restart automatically (`restart: unless-stopped`); WebSocket disconnects recover with gapless cursor replay within Jetstream's 24-hour retention |
-| NFR-04 | Resource efficiency | The full 12-container stack operates within ~76 GB on a 128 GB workstation, leaving ~52 GB for the host and JVM overhead |
+| NFR-04 | Resource efficiency | The unified stack operates within ~22 GB on a 32 GB workstation, leaving ~8 GB for the host and ~1.7 GB headroom |
 | NFR-05 | Reproducibility | The environment is fully defined in version-controlled `docker-compose.yml`, `Makefile`, and `.env.example` |
 | NFR-06 | Observability | Pipeline health is self-monitored via `mart_pipeline_health` and a dedicated Grafana dashboard row |
 | NFR-07 | Portability | Sentiment inference adapts automatically between GPU (`device=0`) and CPU (`device=-1`) at container startup via `torch.cuda.is_available()` |
@@ -179,11 +179,11 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 
 | ID | Requirement |
 |---|---|
-| IR-01 | spark-ingest connects to the Jetstream WebSocket via a custom Python DataSource V2 implementation (`JetstreamDataSource` + `JetstreamStreamReader`) |
-| IR-02 | All five Spark containers share table metadata through the Polaris REST catalog at port 8181 |
+| IR-01 | spark-unified connects to the Jetstream WebSocket via a custom Python DataSource V2 implementation (`JetstreamDataSource` + `JetstreamStreamReader`) |
+| IR-02 | spark-unified and spark-thrift share table metadata through the Polaris REST catalog at port 8181 |
 | IR-03 | Grafana connects to Spark Thrift Server via the Apache Hive datasource plugin (JDBC, port 10000) |
 | IR-04 | The cloudflared container routes public HTTPS traffic to the local Grafana instance on the `atmosphere-frontend` Docker network |
-| IR-05 | spark-sentiment accesses the host NVIDIA GPU via `nvidia-container-toolkit` with `deploy.resources.reservations.devices: [capabilities: [gpu]]` |
+| IR-05 | spark-unified accesses the host NVIDIA GPU via `nvidia-container-toolkit` with `deploy.resources.reservations.devices: [capabilities: [gpu]]` |
 
 ---
 
@@ -208,7 +208,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | D-03 | cardiffnlp/twitter-xlm-roberta-base-sentiment | Open-source ML model | ~1.1 GB, fine-tuned on ~198M tweets, 100+ languages |
 | D-04 | NVIDIA GPU + nvidia-container-toolkit | Host hardware/software | Required for GPU inference; CPU fallback available |
 | D-05 | Cloudflare account + registered domain | External service | ~$10/year domain + free Cloudflare plan for tunnel |
-| D-06 | Docker Engine + Docker Compose | Host software | Container orchestration for the 12-container stack |
+| D-06 | Docker Engine + Docker Compose | Host software | Container orchestration for the 8-container stack |
 
 ---
 
@@ -216,9 +216,9 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 
 | ID | Category | Constraint |
 |---|---|---|
-| C-01 | Hardware | 128 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
-| C-02 | Compute | ~96 GB allocated to Docker; ~32 GB reserved for the host workstation |
-| C-03 | Memory budget | 12 containers with pre-allocated memory: spark-sentiment (16 GB), spark-core (10 GB), spark-thrift (10 GB), spark-ingest (8 GB), spark-staging (8 GB), rustfs (16 GB), polaris (2 GB), postgres (2 GB), grafana (2 GB), cloudflared (512 MB), init (1 GB) |
+| C-01 | Hardware | 32 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
+| C-02 | Compute | ~24 GB allocated to Docker; ~8 GB reserved for the host workstation |
+| C-03 | Memory budget | Unified architecture: spark-unified (14 GB), rustfs (3 GB), spark-thrift (2 GB), polaris (1 GB), postgres (1 GB), grafana (512 MB), init (512 MB), cloudflared (256 MB) — total ~22.3 GB |
 | C-04 | Storage | All data stored locally in RustFS within Docker volumes; 30-day retention window |
 | C-05 | Network | Single outbound WebSocket to Jetstream; inbound public access via Cloudflare Tunnel |
 | C-06 | Technology | Three core technologies — Spark, Iceberg, Grafana — plus supporting infrastructure (RustFS, Polaris, PostgreSQL, cloudflared) |
@@ -243,7 +243,7 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 
 The project is complete when:
 
-1. **The pipeline runs continuously** — all 12 containers healthy, data flowing through all four medallion layers (`atmosphere.raw` → `atmosphere.staging` → `atmosphere.core` → `atmosphere.mart`)
+1. **The pipeline runs continuously** — all containers healthy, data flowing through all four medallion layers (`atmosphere.raw` → `atmosphere.staging` → `atmosphere.core` → `atmosphere.mart`)
 2. **The dashboard is live** — five sections rendering real-time data with 5-second refresh via Spark Thrift JDBC
 3. **Sentiment analysis is active** — every post receives a multilingual sentiment score with visible positive/negative/neutral distribution on the Sentiment Live Feed row
 4. **The public URL is accessible** — `atmosphere.yourdomain.com` loads the Grafana dashboard through Cloudflare Tunnel
@@ -266,14 +266,13 @@ The project is complete when:
 
 ```mermaid
 flowchart LR
-    JS[Jetstream\nWebSocket] --> SI[spark-ingest]
-    SI --> RAW[(raw_events)]
-    RAW --> SS[spark-staging]
-    SS --> STG[(stg_posts\nstg_likes\nstg_reposts\nstg_follows\nstg_blocks\nstg_profiles)]
-    STG --> SC[spark-core]
-    SC --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
-    CORE --> SM[spark-sentiment]
-    SM --> SENT[(core_post_sentiment)]
+    JS[Jetstream\nWebSocket] --> SU[spark-unified]
+    SU --> RAW[(raw_events)]
+    RAW --> SU
+    SU --> STG[(stg_posts\nstg_likes\nstg_reposts\nstg_follows\nstg_blocks\nstg_profiles)]
+    STG --> SU
+    SU --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
+    SU --> SENT[(core_post_sentiment)]
     CORE & SENT --> MART[(5 materialized marts\n4 views)]
     MART --> ST[spark-thrift]
     ST --> GF[Grafana]
@@ -300,10 +299,10 @@ Five Spark Structured Streaming applications run in separate containers, chained
 | Phase | Deliverables | Dependencies |
 |---|---|---|
 | **Phase 1: Foundation** | `docker-compose.yml` with infrastructure containers (RustFS, Polaris, PostgreSQL). Init container creates `warehouse` bucket, `atmosphere` catalog, and four Iceberg namespaces. | — |
-| **Phase 2: Ingestion** | Custom `JetstreamDataSource` + `JetstreamStreamReader` (Python DataSource V2). spark-ingest writing `raw_events` to `atmosphere.raw` with dual offset tracking. | Phase 1 |
-| **Phase 3: Staging** | spark-staging parsing all six collection types into typed staging tables with daily partitioning. | Phase 2 |
-| **Phase 4: Core + Mart** | spark-core producing five enriched core tables (`core_posts`, `core_mentions`, `core_hashtags`, `core_engagement`) and five materialized mart tables. Four analytics views. | Phase 3 |
-| **Phase 5: Sentiment** | spark-sentiment running XLM-RoBERTa inference on GPU via `mapInPandas` (batch_size=64). Docker image with CUDA + embedded model weights (~1.1 GB). `core_post_sentiment` table. | Phase 4 |
+| **Phase 2: Ingestion** | Custom `JetstreamDataSource` + `JetstreamStreamReader` (Python DataSource V2). Ingest layer writing `raw_events` to `atmosphere.raw` with dual offset tracking. | Phase 1 |
+| **Phase 3: Staging** | Staging layer parsing all six collection types into typed staging tables with daily partitioning. | Phase 2 |
+| **Phase 4: Core + Mart** | Core layer producing five enriched core tables (`core_posts`, `core_mentions`, `core_hashtags`, `core_engagement`) and five materialized mart tables. Four analytics views. | Phase 3 |
+| **Phase 5: Sentiment** | Sentiment layer running XLM-RoBERTa inference on GPU via `mapInPandas` (batch_size=64). Docker image with CUDA + embedded model weights (~1.1 GB). `core_post_sentiment` table. All four layers consolidated into spark-unified. | Phase 4 |
 | **Phase 6: Dashboard** | Grafana with five provisioned dashboard sections (17+ panels). spark-thrift serving JDBC queries via Apache Hive plugin. | Phase 4 (Phase 5 for sentiment panels) |
 | **Phase 7: Public Access** | cloudflared container, Cloudflare Tunnel configuration, public URL. README and documentation finalized. | Phase 6 |
 
@@ -332,7 +331,7 @@ flowchart TD
 | R-04 | Spark 4.x Python DataSource V2 API has undocumented limitations | Medium | Medium | The custom source is isolated in a single file (`jetstream_source.py`). The API is stable as of Spark 4.x GA. Changes are contained to one component. |
 | R-05 | Iceberg streaming reads introduce latency between layers | Low | Medium | Each layer operates independently with its own checkpoint. Latency between layers is visible in the `mart_pipeline_health` table and the Pipeline Health dashboard row. |
 | R-06 | XLM-RoBERTa produces low-quality sentiment for underrepresented languages | Medium | Low | The model covers 100+ languages but accuracy varies by language. The dashboard displays sentiment distribution, making quality visible. The model can be swapped via a single configuration change in the Dockerfile. |
-| R-07 | Docker Compose resource contention on 128 GB machine | Low | Medium | Memory allocations are pre-budgeted per container (~76 GB total across 12 containers), leaving ~52 GB of headroom for the host, JVM overhead, and OS caches. |
+| R-07 | Docker Compose resource contention on 32 GB machine | Low | Medium | Memory allocations are pre-budgeted per container (~22 GB total), leaving ~8 GB for the host and ~1.7 GB headroom. The unified architecture consolidates 4 Spark containers into 1, saving ~3 GB JVM overhead. |
 
 ---
 

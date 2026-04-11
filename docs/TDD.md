@@ -67,8 +67,8 @@ Two components distinguish Atmosphere from a conventional streaming pipeline:
 
 | Constraint | Detail |
 |---|---|
-| Hardware | 128 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
-| Compute budget | ~96 GB allocated to the Docker stack, ~32 GB reserved for the host workstation |
+| Hardware | 32 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
+| Compute budget | ~24 GB allocated to the Docker stack, ~8 GB reserved for the host workstation |
 | Data source | Bluesky Jetstream public WebSocket — zero authentication, zero rate limits, 24-hour event TTL on server |
 | Runtime | Always-on operation — the pipeline runs continuously while the workstation remains usable |
 | Storage | Local only — RustFS (S3-compatible object storage) running in Docker |
@@ -88,10 +88,7 @@ flowchart TD
 
     subgraph Local Machine
         subgraph Spark Engine
-            SI[spark-ingest\nCustom WebSocket Source]
-            SS[spark-staging\nParse + Type]
-            SC[spark-core\nEnrich + Extract]
-            SM[spark-sentiment\nXLM-RoBERTa + GPU]
+            SU[spark-unified\nIngest + Staging + Core + Sentiment\nGPU-accelerated]
             ST[spark-thrift\nJDBC Serving]
         end
 
@@ -128,28 +125,29 @@ flowchart TD
 
 The pipeline operates as a chain of five Spark Structured Streaming applications, each running in its own container. Every application reads from upstream Iceberg tables via `readStream` and writes to downstream Iceberg tables, forming a continuous streaming DAG:
 
-1. **spark-ingest** connects to the Bluesky Jetstream WebSocket via a custom Python DataSource V2 source. Raw JSON events are written to `atmosphere.raw.raw_events` in 5-second micro-batches.
+All four streaming layers run in a single unified Spark process (`spark-unified`) sharing one SparkSession and JVM:
 
-2. **spark-staging** reads `raw_events` as a streaming Iceberg source. Events are parsed by collection type, fields are extracted and typed, and results are written to six staging tables (`stg_posts`, `stg_likes`, `stg_reposts`, `stg_follows`, `stg_blocks`, `stg_profiles`).
+1. **Ingest layer** connects to the Bluesky Jetstream WebSocket via a custom Python DataSource V2 source. Raw JSON events are written to `atmosphere.raw.raw_events` in 5-second micro-batches.
 
-3. **spark-core** reads staging tables and produces enriched core tables: `core_posts` (with extracted hashtags, mentions, content classification), `core_mentions`, `core_hashtags`, and `core_engagement`.
+2. **Staging layer** reads `raw_events` as a streaming Iceberg source. Events are parsed by collection type, fields are extracted and typed, and results are written to six staging tables (`stg_posts`, `stg_likes`, `stg_reposts`, `stg_follows`, `stg_blocks`, `stg_profiles`).
 
-4. **spark-sentiment** reads `core_posts` and applies the XLM-RoBERTa sentiment model via `mapInPandas` with GPU acceleration. Results are written to `core_post_sentiment`.
+3. **Core layer** reads staging tables and produces enriched core tables: `core_posts` (with extracted hashtags, mentions, content classification), `core_mentions`, `core_hashtags`, and `core_engagement`.
+
+4. **Sentiment layer** reads `core_posts` and applies the XLM-RoBERTa sentiment model via `mapInPandas` with GPU acceleration. Results are written to `core_post_sentiment`.
 
 5. **spark-thrift** exposes all Iceberg tables (raw through mart) as a JDBC endpoint. Grafana connects via the Apache Hive datasource plugin and refreshes panels every 5 seconds.
 
-Additionally, spark-core materializes mart-layer aggregation tables (`mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health`) from core tables on each micro-batch. Less frequently queried analytics are served as Iceberg views.
+Additionally, the core layer materializes mart-layer aggregation tables (`mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health`) from core tables on each micro-batch. Less frequently queried analytics are served as Iceberg views.
 
 ```mermaid
 flowchart LR
-    WS[Jetstream\nWebSocket] --> SI[spark-ingest]
-    SI --> RAW[(raw_events)]
-    RAW --> SS[spark-staging]
-    SS --> STG[(stg_posts\nstg_likes\nstg_reposts\nstg_follows\nstg_blocks\nstg_profiles)]
-    STG --> SC[spark-core]
-    SC --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
-    CORE --> SM[spark-sentiment]
-    SM --> SENT[(core_post_sentiment)]
+    WS[Jetstream\nWebSocket] --> SU[spark-unified]
+    SU --> RAW[(raw_events)]
+    RAW --> SU
+    SU --> STG[(stg_posts\nstg_likes\nstg_reposts\nstg_follows\nstg_blocks\nstg_profiles)]
+    STG --> SU
+    SU --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
+    SU --> SENT[(core_post_sentiment)]
     CORE & SENT --> MART[(mart_*\n5 materialized\n4 views)]
     MART & CORE & STG & RAW --> ST[spark-thrift]
     ST --> GF[Grafana]
@@ -168,7 +166,7 @@ flowchart LR
 | ML inference | HuggingFace Transformers + `mapInPandas` | Vectorized batch inference via Pandas UDFs. GPU-accelerated with NVIDIA container toolkit. |
 | Dashboard | Grafana | Industry-standard observability platform. Apache Hive datasource plugin connects directly to Spark Thrift Server via JDBC. |
 | Public access | Cloudflare Tunnel | Secure outbound-only HTTPS tunnel from local machine to public URL. All compute stays local. |
-| Container orchestration | Docker Compose | Single `make up` command starts the full 12-container stack. |
+| Container orchestration | Docker Compose | Single `make up` command starts the full 8-container stack. |
 | Python tooling | uv + pyproject.toml | Modern, fast Python dependency management with lockfile support. |
 
 ### 3.4 Consolidated Responsibilities
@@ -323,10 +321,10 @@ Profile update events contain display name, description, avatar, banner, and pin
 
 | Layer | Namespace | Writer | Description |
 |---|---|---|---|
-| Raw | `atmosphere.raw` | spark-ingest | Verbatim JSON events. Append-only. Immutable after write. |
-| Staging | `atmosphere.staging` | spark-staging | Parsed, typed, and cleaned. One table per collection type. |
-| Core | `atmosphere.core` | spark-core, spark-sentiment | Enriched entities. Extracted mentions, hashtags, sentiment scores. |
-| Mart | `atmosphere.mart` | spark-core | Dashboard-ready aggregates. Hot tables are materialized; cold analytics are served as views. |
+| Raw | `atmosphere.raw` | spark-unified (ingest layer) | Verbatim JSON events. Append-only. Immutable after write. |
+| Staging | `atmosphere.staging` | spark-unified (staging layer) | Parsed, typed, and cleaned. One table per collection type. |
+| Core | `atmosphere.core` | spark-unified (core + sentiment layers) | Enriched entities. Extracted mentions, hashtags, sentiment scores. |
+| Mart | `atmosphere.mart` | spark-unified (core layer) | Dashboard-ready aggregates. Hot tables are materialized; cold analytics are served as views. |
 
 ### 5.2 Raw Layer
 
@@ -483,7 +481,7 @@ All staging tables share a common set of envelope columns derived from the raw e
 
 ### 5.5 Mart Layer
 
-**Materialized tables** (written by spark-core on each micro-batch):
+**Materialized tables** (written by the core layer on each micro-batch):
 
 | Table | Description |
 |---|---|
@@ -521,19 +519,16 @@ Data retention is set to **30 days** across all layers. Expired partitions are d
 
 | Container | Image | Purpose | Memory | Ports |
 |---|---|---|---|---|
-| `init` | Custom Python | Creates RustFS buckets, Polaris warehouse, and Iceberg namespaces. Exits after completion. | 1 GB | — |
-| `rustfs` | `rustfs/rustfs` | S3-compatible object storage for all Iceberg data and metadata files. | 16 GB | 9000, 9001 (console) |
-| `polaris` | `apache/polaris` | Iceberg REST catalog. Serves table metadata to all Spark containers. | 2 GB | 8181 |
-| `postgres` | `postgres:16` | Backing store for the Polaris catalog. | 2 GB | 5432 |
-| `spark-ingest` | Custom (Spark 4.x + custom source) | Connects to Jetstream WebSocket. Writes raw events to Iceberg. | 8 GB | 4040 (Spark UI) |
-| `spark-staging` | Custom (Spark 4.x) | Parses raw events by collection. Writes typed staging tables. | 8 GB | 4041 (Spark UI) |
-| `spark-core` | Custom (Spark 4.x) | Enriches staging data. Extracts hashtags, mentions. Writes core + mart tables. | 10 GB | 4042 (Spark UI) |
-| `spark-sentiment` | Custom (Spark 4.x + CUDA + HuggingFace) | Runs XLM-RoBERTa sentiment inference on GPU. Writes `core_post_sentiment`. | 16 GB | 4043 (Spark UI) |
-| `spark-thrift` | Custom (Spark 4.x) | Spark Thrift Server exposing all Iceberg tables via JDBC. | 10 GB | 10000 (JDBC), 4044 (Spark UI) |
-| `grafana` | `grafana/grafana-oss` | Dashboard rendering. Connects to Spark Thrift via Apache Hive plugin. | 2 GB | 3000 |
-| `cloudflared` | `cloudflare/cloudflared` | Cloudflare Tunnel agent. Bridges local Grafana to a public HTTPS URL. | 512 MB | — |
+| `init` | Custom Python | Creates RustFS buckets, Polaris warehouse, and Iceberg namespaces. Exits after completion. | 512 MB | — |
+| `rustfs` | `rustfs/rustfs` | S3-compatible object storage for all Iceberg data and metadata files. | 3 GB | 9000, 9001 (console) |
+| `polaris` | `apache/polaris` | Iceberg REST catalog. Serves table metadata to Spark processes. | 1 GB | 8181 |
+| `postgres` | `postgres:16` | Backing store for the Polaris catalog. | 1 GB | 5432 |
+| `spark-unified` | Custom (Spark 4.x + CUDA + HuggingFace) | Runs all 4 streaming layers (ingest, staging, core, sentiment) in one JVM. GPU-accelerated sentiment inference. | 14 GB | 4040 (Spark UI) |
+| `spark-thrift` | Custom (Spark 4.x) | Spark Thrift Server exposing all Iceberg tables via JDBC. | 2 GB | 10000 (JDBC), 4044 (Spark UI) |
+| `grafana` | `grafana/grafana-oss` | Dashboard rendering. Connects to Spark Thrift via Apache Hive plugin. | 512 MB | 3000 |
+| `cloudflared` | `cloudflare/cloudflared` | Cloudflare Tunnel agent. Bridges local Grafana to a public HTTPS URL. | 256 MB | — |
 
-**Total memory allocation: ~76 GB** (within 96 GB budget, leaving headroom for JVM overhead and OS caches).
+**Total memory allocation: ~22 GB** (within 24 GB budget, leaving ~1.7 GB headroom for JVM overhead and OS caches).
 
 ### 6.2 Startup Dependency Chain
 
@@ -542,11 +537,8 @@ flowchart TD
     PG[postgres] --> PL[polaris]
     RS[rustfs] --> INIT[init]
     PL --> INIT
-    INIT --> SI[spark-ingest]
+    INIT --> SU[spark-unified]
     INIT --> ST[spark-thrift]
-    SI --> SS[spark-staging]
-    SS --> SC[spark-core]
-    SC --> SM[spark-sentiment]
     ST --> GF[grafana]
     GF --> CF[cloudflared]
 ```
@@ -557,7 +549,7 @@ Containers use Docker Compose `depends_on` with health checks to enforce orderin
 
 | Network | Purpose | Members |
 |---|---|---|
-| `atmosphere-data` | Internal data plane. All storage and compute traffic. | rustfs, polaris, postgres, init, spark-ingest, spark-staging, spark-core, spark-sentiment, spark-thrift |
+| `atmosphere-data` | Internal data plane. All storage and compute traffic. | rustfs, polaris, postgres, init, spark-unified, spark-thrift |
 | `atmosphere-frontend` | Serving plane. Dashboard and public access. | spark-thrift, grafana, cloudflared |
 
 `spark-thrift` is connected to both networks — it reads from storage on the data network and serves queries to Grafana on the frontend network.
@@ -578,10 +570,7 @@ Each Spark application creates its own tables on first write using `CREATE TABLE
 |---|---|---|---|
 | `rustfs-data` | rustfs | `/data` | Persistent object storage |
 | `postgres-data` | postgres | `/var/lib/postgresql/data` | Catalog metadata |
-| `spark-ingest-checkpoints` | spark-ingest | `/opt/spark/checkpoints` | Streaming checkpoint state |
-| `spark-staging-checkpoints` | spark-staging | `/opt/spark/checkpoints` | Streaming checkpoint state |
-| `spark-core-checkpoints` | spark-core | `/opt/spark/checkpoints` | Streaming checkpoint state |
-| `spark-sentiment-checkpoints` | spark-sentiment | `/opt/spark/checkpoints` | Streaming checkpoint state |
+| `spark-checkpoints` | spark-unified | `/opt/spark/checkpoints` | Streaming checkpoint state (subdirs: ingest-raw, staging, core/posts, core/engagement, sentiment) |
 | `grafana-data` | grafana | `/var/lib/grafana` | Dashboard state and plugin cache |
 
 ---
@@ -671,7 +660,7 @@ Bluesky's user base is multilingual — Japanese constitutes approximately 26% o
 
 ### 8.2 Inference Pipeline
 
-The spark-sentiment container runs a Spark Structured Streaming application that:
+The sentiment layer (within spark-unified) runs a Spark Structured Streaming query that:
 
 1. Reads `atmosphere.core.core_posts` as a streaming Iceberg source.
 2. Applies the sentiment model via `mapInPandas`, a Pandas UDF that processes batches of rows as Pandas DataFrames.
@@ -714,7 +703,7 @@ The model is downloaded during Docker image build (`RUN python -c "from transfor
 |---|---|---|
 | HuggingFace `batch_size` | 64 | Balances GPU memory usage against throughput. XLM-RoBERTa with batch=64 fits comfortably in 8 GB VRAM. |
 | Spark `mapInPandas` batch size | Spark default (Arrow batch size) | Spark controls how many rows are sent to each `mapInPandas` call. The HuggingFace pipeline internally sub-batches at 64. |
-| Trigger interval | 5 seconds | Aligned with upstream spark-core. At ~26 posts/sec, each batch contains ~130 posts — a single GPU forward pass completes in <1 second. |
+| Trigger interval | 5 seconds | Aligned with upstream core layer. At ~26 posts/sec, each batch contains ~130 posts — a single GPU forward pass completes in <1 second. |
 
 **Throughput estimate:** At batch_size=64, XLM-RoBERTa on a consumer NVIDIA GPU processes approximately 200-500 texts/sec. At ~26 posts/sec inbound, the GPU is utilized at 5-13% — substantial headroom for peak hours.
 
@@ -911,17 +900,17 @@ Health checks are defined for critical services:
 
 ### 11.4 Stale Data Handling
 
-If any Spark container stops or falls behind, Grafana continues to display the last known data. Dashboard panels show stale timestamps rather than empty panels. The Pipeline Health row (§10.6) surfaces lag metrics so the operator can identify which container is behind.
+If the spark-unified process stops or a streaming query falls behind, Grafana continues to display the last known data. Dashboard panels show stale timestamps rather than empty panels. The Pipeline Health row (§10.6) surfaces lag metrics so the operator can identify which layer is behind.
 
 ### 11.5 GPU Fallback
 
-The spark-sentiment container detects GPU availability at startup:
+The sentiment layer detects GPU availability at startup:
 
 ```python
 device = 0 if torch.cuda.is_available() else -1
 ```
 
-The container adapts automatically at startup — GPU when available, CPU otherwise. CPU inference is sufficient for development and testing workflows.
+The layer adapts automatically at startup — GPU when available, CPU otherwise. CPU inference is sufficient for development and testing workflows.
 
 ---
 
@@ -933,23 +922,24 @@ atmosphere/
 ├── TECHNICAL_DESIGN.md                    # This document
 ├── README.md                              # Project overview, setup, architecture diagram
 ├── Makefile                               # up, down, logs, status, clean targets
-├── docker-compose.yml                     # Full 12-container stack definition
+├── docker-compose.yml                     # Full service stack definition
 ├── .env.example                           # Environment variable template
 ├── .gitignore
 │
 ├── spark/
-│   ├── Dockerfile                         # Base Spark 4.x image with Iceberg + Polaris config
-│   ├── Dockerfile.sentiment               # Extends base with CUDA + HuggingFace + model weights
+│   ├── Dockerfile                         # Base Spark 4.x image (spark-thrift)
+│   ├── Dockerfile.sentiment               # Unified image: CUDA + HuggingFace + model weights (spark-unified)
 │   ├── conf/
 │   │   └── spark-defaults.conf            # Iceberg catalog, S3/RustFS, checkpointing config
 │   ├── sources/
 │   │   └── jetstream_source.py            # Custom WebSocket DataSource V2 implementation
+│   ├── unified.py                         # Consolidated entrypoint (all 5 streaming queries)
 │   ├── ingestion/
-│   │   └── ingest_raw.py                  # spark-ingest: WebSocket → raw_events
+│   │   └── ingest_raw.py                  # Ingest layer: WebSocket → raw_events
 │   ├── transforms/
-│   │   ├── staging.py                     # spark-staging: raw → stg_* tables
-│   │   ├── core.py                        # spark-core: stg → core + mart tables
-│   │   ├── sentiment.py                   # spark-sentiment: core_posts → core_post_sentiment
+│   │   ├── staging.py                     # Staging layer: raw → stg_* tables
+│   │   ├── core.py                        # Core layer: stg → core + mart tables
+│   │   ├── sentiment.py                   # Sentiment layer: core_posts → core_post_sentiment
 │   │   └── sql/
 │   │       ├── staging/                   # SQL files for staging transforms
 │   │       ├── core/                      # SQL files for core transforms
@@ -1103,11 +1093,11 @@ The XLM-RoBERTa model runs on GPU when available (`device=0`) and adapts to CPU 
 
 ### 15.6 Centralized REST catalog (Polaris)
 
-Five Spark containers read and write table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-application coordination. All containers share a consistent view of table state.
+The spark-unified process and spark-thrift server read and write table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-process coordination. Both processes share a consistent view of table state.
 
 ### 15.7 Hybrid materialized + view mart layer
 
-Frequently queried marts (`sentiment_timeseries`, `events_per_second`, `trending_hashtags`, `engagement_velocity`, `pipeline_health`) are materialized as Iceberg tables, updated on each micro-batch by spark-core. Less frequent analytics (`language_distribution`, `top_posts`, `most_mentioned`, `content_breakdown`) are served as views through Spark Thrift. Materialized marts deliver sub-second query response times for Grafana's 5-second refresh cycle.
+Frequently queried marts (`sentiment_timeseries`, `events_per_second`, `trending_hashtags`, `engagement_velocity`, `pipeline_health`) are materialized as Iceberg tables, updated on each micro-batch by the core layer. Less frequent analytics (`language_distribution`, `top_posts`, `most_mentioned`, `content_breakdown`) are served as views through Spark Thrift. Materialized marts deliver sub-second query response times for Grafana's 5-second refresh cycle.
 
 ### 15.8 30-day retention window
 
@@ -1127,7 +1117,7 @@ The XLM-RoBERTa model (~1.1 GB) is downloaded during `docker build` and embedded
 
 ### 15.12 Spark 4.x local[*] mode
 
-Spark 4.x includes built-in Iceberg support, the Python DataSource V2 API, and improved streaming performance. `local[*]` mode runs each application using all available CPU cores within its container — lightweight, memory-efficient, and purpose-fit for a single-firehose workload.
+Spark 4.x includes built-in Iceberg support, the Python DataSource V2 API, and improved streaming performance. `local[*]` mode runs the unified application using all available CPU cores — lightweight, memory-efficient, and purpose-fit for a single-firehose workload.
 
 ---
 

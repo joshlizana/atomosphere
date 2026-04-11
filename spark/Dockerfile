@@ -17,6 +17,7 @@ RUN pip install --no-cache-dir websocket-client
 COPY conf/spark-defaults.conf /opt/spark/conf/spark-defaults.conf
 COPY sources/ /opt/spark/work-dir/spark/sources/
 COPY ingestion/ /opt/spark/work-dir/spark/ingestion/
+COPY transforms/ /opt/spark/work-dir/spark/transforms/
 
 USER spark
 

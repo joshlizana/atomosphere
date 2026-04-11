@@ -168,11 +168,37 @@ services:
     mem_limit: 8g
     restart: unless-stopped
 
+  spark-core:
+    build:
+      context: ./spark
+    container_name: spark-core
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[*]
+      - /opt/spark/work-dir/spark/transforms/core.py
+    ports:
+      - "4042:4040"
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+    volumes:
+      - spark-core-checkpoints:/opt/spark/checkpoints
+    depends_on:
+      spark-staging:
+        condition: service_started
+    networks:
+      - atmosphere-data
+    mem_limit: 10g
+    restart: unless-stopped
+
 volumes:
   rustfs-data:
   postgres-data:
   spark-ingest-checkpoints:
   spark-staging-checkpoints:
+  spark-core-checkpoints:
 
 networks:
   atmosphere-data:

@@ -1,16 +1,21 @@
 .PHONY: up down logs status clean
 
 up:
-	docker compose up -d
+	docker compose up -d --build
+	@echo "\n=== Waiting for services ==="
+	@docker compose logs -f init 2>/dev/null || true
+	@echo "\n=== Service Status ==="
+	@docker compose ps -a
 
 down:
-	docker compose down
+	docker compose down -v --remove-orphans
 
 logs:
 	docker compose logs -f
 
 status:
-	docker compose ps
+	docker compose ps -a
 
 clean:
-	docker compose down -v
+	docker compose down -v --remove-orphans
+	@echo "Volumes and containers removed."

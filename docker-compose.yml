@@ -43,6 +43,79 @@ services:
     mem_limit: 2g
     restart: unless-stopped
 
+  polaris-bootstrap:
+    image: apache/polaris-admin-tool:latest
+    container_name: polaris-bootstrap
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        java -jar /deployments/polaris-admin-tool.jar bootstrap
+        --realm=POLARIS --credential=POLARIS,root,s3cr3t
+        || echo "Bootstrap already completed (idempotent skip)"
+    environment:
+      POLARIS_PERSISTENCE_TYPE: relational-jdbc
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      QUARKUS_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      QUARKUS_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - atmosphere-data
+    restart: "no"
+
+  polaris:
+    image: apache/polaris:latest
+    container_name: polaris
+    ports:
+      - "8181:8181"
+      - "8182:8182"
+    environment:
+      POLARIS_PERSISTENCE_TYPE: relational-jdbc
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      QUARKUS_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      QUARKUS_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      POLARIS_BOOTSTRAP_CREDENTIALS: ${POLARIS_BOOTSTRAP_CREDENTIALS}
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8182/q/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+    depends_on:
+      polaris-bootstrap:
+        condition: service_completed_successfully
+    networks:
+      - atmosphere-data
+    mem_limit: 2g
+    restart: unless-stopped
+
+  # --- Init Container ---
+
+  init:
+    build:
+      context: ./infra/init
+    container_name: init
+    environment:
+      RUSTFS_ENDPOINT: http://rustfs:9000
+      RUSTFS_ROOT_USER: ${RUSTFS_ROOT_USER}
+      RUSTFS_ROOT_PASSWORD: ${RUSTFS_ROOT_PASSWORD}
+      POLARIS_HOST: http://polaris:8181
+      POLARIS_CLIENT_ID: root
+      POLARIS_CLIENT_SECRET: s3cr3t
+    depends_on:
+      rustfs:
+        condition: service_healthy
+      polaris:
+        condition: service_healthy
+    networks:
+      - atmosphere-data
+    mem_limit: 1g
+    restart: "no"
+
 volumes:
   rustfs-data:
   postgres-data:

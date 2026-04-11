@@ -116,9 +116,37 @@ services:
     mem_limit: 1g
     restart: "no"
 
+  # --- Spark Applications ---
+
+  spark-ingest:
+    build:
+      context: ./spark
+    container_name: spark-ingest
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[*]
+      - /opt/spark/work-dir/spark/ingestion/ingest_raw.py
+    ports:
+      - "4040:4040"
+    environment:
+      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
+      AWS_REGION: us-east-1
+    volumes:
+      - spark-ingest-checkpoints:/opt/spark/checkpoints
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    networks:
+      - atmosphere-data
+    mem_limit: 8g
+    restart: unless-stopped
+
 volumes:
   rustfs-data:
   postgres-data:
+  spark-ingest-checkpoints:
 
 networks:
   atmosphere-data:

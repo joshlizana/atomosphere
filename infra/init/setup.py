@@ -90,7 +90,7 @@ def create_catalog(token):
             "storageConfigInfo": {
                 "storageType": "S3",
                 "allowedLocations": [f"s3://{BUCKET_NAME}/"],
-                "endpoint": f"http://localhost:9000",
+                "endpoint": RUSTFS_ENDPOINT,
                 "endpointInternal": RUSTFS_ENDPOINT,
                 "pathStyleAccess": True,
             },

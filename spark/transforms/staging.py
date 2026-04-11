@@ -141,12 +141,12 @@ def process_batch(spark, batch_df, batch_id):
         return
 
     # Register the batch as a temp view for SQL transforms
-    batch_df.createOrReplaceTempView("raw_batch")
+    batch_df.createOrReplaceGlobalTempView("raw_batch")
 
     for collection, table in COLLECTION_MAP.items():
         sql_name = table.split(".")[-1]  # e.g., "stg_posts"
         sql_template = load_sql(sql_name)
-        sql = sql_template.format(source="raw_batch")
+        sql = sql_template.format(source="global_temp.raw_batch")
 
         result_df = spark.sql(sql)
 

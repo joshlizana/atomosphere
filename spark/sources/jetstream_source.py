@@ -96,6 +96,25 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         self._consecutive_failures = 0
         self._connect()
 
+    def __getstate__(self):
+        """Exclude unpicklable thread/socket objects for Spark serialization."""
+        state = self.__dict__.copy()
+        state["_buffer_lock"] = None
+        state["_ws"] = None
+        state["_ws_thread"] = None
+        state["_buffer"] = deque()
+        return state
+
+    def __setstate__(self, state):
+        """Restore from pickle and reinitialize thread-local objects."""
+        self.__dict__.update(state)
+        self._buffer_lock = threading.Lock()
+        self._buffer = deque()
+        self._ws = None
+        self._ws_thread = None
+        self._running = False
+        self._connect()
+
     def _get_connect_url(self):
         """Build WebSocket URL with cursor for reconnection (FR-04)."""
         endpoint = JETSTREAM_ENDPOINTS[self._endpoint_index]

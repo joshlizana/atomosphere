@@ -1,0 +1,54 @@
+services:
+  # --- Infrastructure Services ---
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: rustfs
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      RUSTFS_ROOT_USER: ${RUSTFS_ROOT_USER}
+      RUSTFS_ROOT_PASSWORD: ${RUSTFS_ROOT_PASSWORD}
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - atmosphere-data
+    mem_limit: 16g
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 2s
+      retries: 15
+    networks:
+      - atmosphere-data
+    mem_limit: 2g
+    restart: unless-stopped
+
+volumes:
+  rustfs-data:
+  postgres-data:
+
+networks:
+  atmosphere-data:
+    name: atmosphere-data
+  atmosphere-frontend:
+    name: atmosphere-frontend

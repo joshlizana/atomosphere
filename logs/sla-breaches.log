@@ -1,0 +1,9 @@
+[2026-04-12 03:30:02] BREACH: data_loss_staging_to_core — actual=10% threshold=<5%
+[2026-04-12 03:30:02] BREACH: data_loss_core_to_sentiment — actual=6% threshold=<5%
+[2026-04-12 03:30:05] BREACH: sentiment_coverage — actual=93% threshold=>95%
+[2026-04-12 03:47:47] BREACH: freshness_core_post_sentiment — actual=140s threshold=<60s
+[2026-04-12 03:47:47] BREACH: data_loss_staging_to_core — actual=8% threshold=<5%
+[2026-04-12 03:47:47] BREACH: data_loss_core_to_sentiment — actual=94% threshold=<5%
+[2026-04-12 03:47:48] BREACH: sentiment_coverage — actual=5% threshold=>95%
+[2026-04-12 03:48:20] BREACH: data_loss_core_to_sentiment — actual=8% threshold=<5%
+[2026-04-12 03:48:21] BREACH: sentiment_coverage — actual=91% threshold=>95%

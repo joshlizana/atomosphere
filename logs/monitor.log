@@ -1,0 +1,547 @@
+[2026-04-11 15:46:42] DRY-RUN: would restart spark-ingest (container not running (state: ))
+[2026-04-11 15:46:42] DRY-RUN: would restart spark-staging (container not running (state: ))
+[2026-04-11 15:46:42] DRY-RUN: would restart spark-core (container not running (state: ))
+[2026-04-11 15:46:42] DRY-RUN: would restart spark-sentiment (container not running (state: ))
+[2026-04-11 15:46:43] CHECK: pass=0 warn=5 fail=0 healed=true
+[2026-04-12 02:17:57] Starting monitor loop (interval=30s, dry-run=false)
+[2026-04-12 02:17:57]   services                     [PASS] 2/2 running
+[2026-04-12 02:19:27]   raw_events                   [WARN] no data yet
+[2026-04-12 02:19:27]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 02:19:27]   core_posts                   [SKIP] upstream stale
+[2026-04-12 02:19:27]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 02:19:29]   ingest                       [WARN] no checkpoint data
+[2026-04-12 02:19:31]   staging                      [WARN] no checkpoint data
+[2026-04-12 02:19:33]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 02:19:34]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 02:19:36]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 02:19:36]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 817/11264 MiB (7%)
+[2026-04-12 02:19:36]   spark-unified                [PASS] clean
+[2026-04-12 02:19:37]   query-api                    [PASS] 4 errors in last 100 lines
+[2026-04-12 02:21:01]   raw_events                   [WARN] query failed
+[2026-04-12 02:21:35]   stg_posts                    [WARN] query failed
+[2026-04-12 02:22:05]   core_posts                   [WARN] query failed
+[2026-04-12 02:22:34]   core_post_sentiment          [WARN] query failed
+[2026-04-12 02:22:44]   e2e latency                  [WARN] no data yet
+[2026-04-12 02:22:45]   stg_posts                    [WARN] query failed
+[2026-04-12 02:22:45]   core_posts                   [WARN] query failed
+[2026-04-12 02:22:45]   core_post_sentiment          [WARN] query failed
+[2026-04-12 02:22:46]   raw→staging                [WARN] query failed
+[2026-04-12 02:22:46]   staging→core               [WARN] query failed
+[2026-04-12 02:22:46]   core→sentiment             [WARN] query failed
+[2026-04-12 02:22:46]   ratios                       [SKIP] no raw data
+[2026-04-12 02:22:46]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 02:22:46]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 02:22:46] CHECK: pass=4 warn=17 fail=0 healed=false
+[2026-04-12 02:23:47]   services                     [PASS] 2/2 running
+[2026-04-12 02:24:53]   raw_events                   [WARN] no data yet
+[2026-04-12 02:24:53]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 02:24:53]   core_posts                   [SKIP] upstream stale
+[2026-04-12 02:24:53]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 02:24:59]   ingest                       [WARN] no checkpoint data
+[2026-04-12 02:25:00]   staging                      [WARN] no checkpoint data
+[2026-04-12 02:25:01]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 02:25:02]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 02:25:03]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 02:25:03]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 3802/11264 MiB (33%)
+[2026-04-12 02:25:03]   spark-unified                [PASS] clean
+[2026-04-12 02:25:04]   query-api                    [PASS] clean
+[2026-04-12 02:26:05]   raw_events                   [WARN] query failed
+[2026-04-12 02:26:35]   stg_posts                    [WARN] query failed
+[2026-04-12 02:27:06]   core_posts                   [WARN] query failed
+[2026-04-12 02:27:35]   core_post_sentiment          [WARN] query failed
+[2026-04-12 02:28:05]   e2e latency                  [WARN] no data yet
+[2026-04-12 02:28:35]   stg_posts                    [WARN] query failed
+[2026-04-12 02:29:05]   core_posts                   [WARN] query failed
+[2026-04-12 02:29:35]   core_post_sentiment          [WARN] query failed
+[2026-04-12 02:56:46] monitor starting (interval=30s, dry_run=true, once=true)
+[2026-04-12 02:56:46]   services                     [PASS] 2/3 running
+[2026-04-12 02:56:47]   spark-unified restarts       [WARN] 28 total restarts
+[2026-04-12 02:56:50]   grafana                      [PASS] 134.6MiB / 512MiB (26%)
+[2026-04-12 02:56:50]   raw_events                   [WARN] no data yet
+[2026-04-12 02:56:50]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 02:56:50]   core_posts                   [SKIP] upstream stale
+[2026-04-12 02:56:50]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 02:56:50]   ingest                       [WARN] no checkpoint data
+[2026-04-12 02:56:51]   staging                      [WARN] no checkpoint data
+[2026-04-12 02:56:52]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 02:56:53]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 02:56:53]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 02:56:54]   gpu                          [WARN] not detected — running in CPU mode
+[2026-04-12 02:56:54]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 02:56:54]   query-api                    [PASS] 4 errors in last 100 lines
+[2026-04-12 02:56:54]   grafana                      [WARN] 42 errors in last 100 lines: grafana  | logger=plugins.update.checker t=2026-04-12T07:53:49.497240048Z level=info msg="flag evaluation succeeded" fla
+[2026-04-12 02:56:54]   raw_events                   [WARN] query failed
+[2026-04-12 02:56:54]   stg_posts                    [WARN] query failed
+[2026-04-12 02:56:54]   core_posts                   [WARN] query failed
+[2026-04-12 02:56:54]   core_post_sentiment          [WARN] query failed
+[2026-04-12 02:56:54]   e2e latency                  [WARN] no data yet
+[2026-04-12 02:56:54]   stg_posts                    [WARN] query failed
+[2026-04-12 02:56:54]   core_posts                   [WARN] query failed
+[2026-04-12 02:56:54]   core_post_sentiment          [WARN] query failed
+[2026-04-12 02:56:54]   raw_to_staging               [WARN] query failed
+[2026-04-12 02:56:54]   staging_to_core              [WARN] query failed
+[2026-04-12 02:56:54]   core_to_sentiment            [WARN] query failed
+[2026-04-12 02:56:55]   ratios                       [SKIP] no raw data
+[2026-04-12 02:56:55]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 02:56:55]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 02:56:55]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 02:56:55]   health                       [PASS] reachable
+[2026-04-12 02:56:55]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 02:56:55] DRY-RUN: would restart spark-unified (container not running (state: restarting))
+[2026-04-12 02:56:55]   spark-unified                [WARN] needs restart: container not running (state: restarting) (dry-run)
+[2026-04-12 02:56:55] CYCLE 1: pass=5 warn=22 fail=0 healed=true
+[2026-04-12 03:09:47] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:09:47]   services                     [PASS] 3/3 running
+[2026-04-12 03:09:48]   spark-unified                [PASS] 751.6MiB / 14GiB (5%)
+[2026-04-12 03:09:50]   query-api                    [PASS] 489.5MiB / 2GiB (23%)
+[2026-04-12 03:09:52]   grafana                      [PASS] 141.5MiB / 512MiB (27%)
+[2026-04-12 03:10:28]   raw_events                   [PASS] [03:09:52]·spark-sql:SELECTCAST(TIMESTAMPDIFF(SECOND,MAX(ingested_at),current_timestamp())ASINT)s
+[2026-04-12 03:10:59]   stg_posts                    [PASS] [03:10:28]·spark-sql:SELECTCAST(TIMESTAMPDIFF(SECOND,MAX(event_time),current_timestamp())ASINT)s
+[2026-04-12 03:11:10] monitor shutting down
+[2026-04-12 03:11:35] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:11:36]   services                     [PASS] 3/3 running
+[2026-04-12 03:11:37]   spark-unified                [PASS] 715.6MiB / 14GiB (4%)
+[2026-04-12 03:11:39]   query-api                    [PASS] 530MiB / 2GiB (25%)
+[2026-04-12 03:11:41]   grafana                      [PASS] 142.5MiB / 512MiB (27%)
+[2026-04-12 03:12:16]   raw_events                   [WARN] no data yet
+[2026-04-12 03:12:16]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:12:16]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:12:16]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:12:18]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:12:18]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:12:19]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:12:20]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:12:21]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:12:22]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 1232/11264 MiB (10%)
+[2026-04-12 03:12:22]   spark-unified                [PASS] clean
+[2026-04-12 03:12:22]   query-api                    [PASS] clean
+[2026-04-12 03:12:22]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:12:54]   raw_events                   [WARN] query failed
+[2026-04-12 03:13:25]   stg_posts                    [WARN] query failed
+[2026-04-12 03:13:54]   core_posts                   [WARN] query failed
+[2026-04-12 03:14:24]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:14:53]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:15:22]   stg_posts                    [WARN] query failed
+[2026-04-12 03:15:50]   core_posts                   [WARN] query failed
+[2026-04-12 03:16:20]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:20:01] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:20:02]   services                     [PASS] 3/3 running
+[2026-04-12 03:20:05]   spark-unified                [PASS] 226.1MiB / 14GiB (1%)
+[2026-04-12 03:20:07]   query-api                    [PASS] 539.9MiB / 2GiB (26%)
+[2026-04-12 03:20:09]   grafana                      [PASS] 133.4MiB / 512MiB (25%)
+[2026-04-12 03:20:10]   raw_events                   [WARN] no data yet
+[2026-04-12 03:20:10]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:20:10]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:20:10]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:20:12]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:20:13]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:20:13]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:20:14]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:20:15]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:20:15]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 922/11264 MiB (8%)
+[2026-04-12 03:20:15]   spark-unified                [PASS] 1 errors in last 100 lines
+[2026-04-12 03:20:16]   query-api                    [PASS] clean
+[2026-04-12 03:20:16]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:20:20]   raw_events                   [WARN] query failed
+[2026-04-12 03:20:28]   stg_posts                    [WARN] query failed
+[2026-04-12 03:20:29]   core_posts                   [WARN] query failed
+[2026-04-12 03:20:29]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:20:29]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:20:29]   stg_posts                    [WARN] query failed
+[2026-04-12 03:20:29]   core_posts                   [WARN] query failed
+[2026-04-12 03:20:29]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:20:38]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:20:38]   staging_to_core              [WARN] query failed
+[2026-04-12 03:20:38]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:20:38]   ratios                       [SKIP] no raw data
+[2026-04-12 03:20:38]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:20:38]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:20:39]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:20:39]   health                       [PASS] reachable
+[2026-04-12 03:20:40]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:20:40] CYCLE 1: pass=9 warn=18 fail=0 healed=false
+[2026-04-12 03:21:10]   services                     [PASS] 3/3 running
+[2026-04-12 03:21:10]   spark-unified restarts       [WARN] 7 total restarts
+[2026-04-12 03:21:14]   query-api                    [PASS] 594.5MiB / 2GiB (29%)
+[2026-04-12 03:21:16]   grafana                      [PASS] 133MiB / 512MiB (25%)
+[2026-04-12 03:21:16]   raw_events                   [WARN] no data yet
+[2026-04-12 03:21:16]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:21:16]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:21:16]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:21:16]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:21:17]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:21:18]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:21:19]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:21:20]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:21:20]   gpu                          [WARN] not detected — running in CPU mode
+[2026-04-12 03:21:20]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 03:21:20]   query-api                    [PASS] 6 errors in last 100 lines
+[2026-04-12 03:21:20]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:21:21]   raw_events                   [WARN] query failed
+[2026-04-12 03:21:21]   stg_posts                    [WARN] query failed
+[2026-04-12 03:21:21]   core_posts                   [WARN] query failed
+[2026-04-12 03:21:21]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:21:21]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:21:21]   stg_posts                    [WARN] query failed
+[2026-04-12 03:21:21]   core_posts                   [WARN] query failed
+[2026-04-12 03:21:21]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:21:21]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:21:21]   staging_to_core              [WARN] query failed
+[2026-04-12 03:21:21]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:21:21]   ratios                       [SKIP] no raw data
+[2026-04-12 03:21:21]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:21:21]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:21:22]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:21:22]   health                       [PASS] reachable
+[2026-04-12 03:21:22]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:21:22] CYCLE 2: pass=7 warn=20 fail=0 healed=false
+[2026-04-12 03:21:30] monitor shutting down
+[2026-04-12 03:22:20] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:22:20]   services                     [PASS] 2/3 running
+[2026-04-12 03:22:20]   spark-unified restarts       [WARN] 10 total restarts
+[2026-04-12 03:22:22]   query-api                    [PASS] 593.7MiB / 2GiB (28%)
+[2026-04-12 03:22:24]   grafana                      [PASS] 133.4MiB / 512MiB (25%)
+[2026-04-12 03:22:24]   raw_events                   [WARN] no data yet
+[2026-04-12 03:22:24]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:22:24]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:22:24]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:22:24]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:22:25]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:22:26]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:22:27]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:22:27]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:22:27]   gpu                          [WARN] not detected — running in CPU mode
+[2026-04-12 03:22:27]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 03:22:28]   query-api                    [PASS] 6 errors in last 100 lines
+[2026-04-12 03:22:28]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:22:28]   raw_events                   [WARN] query failed
+[2026-04-12 03:22:28]   stg_posts                    [WARN] query failed
+[2026-04-12 03:22:28]   core_posts                   [WARN] query failed
+[2026-04-12 03:22:28]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:22:28]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:22:28]   stg_posts                    [WARN] query failed
+[2026-04-12 03:22:28]   core_posts                   [WARN] query failed
+[2026-04-12 03:22:28]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:22:28]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:22:28]   staging_to_core              [WARN] query failed
+[2026-04-12 03:22:28]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:22:28]   ratios                       [SKIP] no raw data
+[2026-04-12 03:22:28]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:22:28]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:22:29]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:22:29]   health                       [PASS] reachable
+[2026-04-12 03:22:29]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:22:29] HEAL: restarting spark-unified (container not running (state: restarting))
+ Container spark-unified Restarting 
+ Container spark-unified Started 
+[2026-04-12 03:22:30]   spark-unified                [WARN] restarted: container not running (state: restarting)
+[2026-04-12 03:22:30] CYCLE 1: pass=7 warn=21 fail=0 healed=true
+[2026-04-12 03:23:00]   services                     [PASS] 3/3 running
+[2026-04-12 03:23:03]   query-api                    [PASS] 597.1MiB / 2GiB (29%)
+[2026-04-12 03:23:05]   grafana                      [PASS] 133.3MiB / 512MiB (25%)
+[2026-04-12 03:23:09]   raw_events                   [WARN] no data yet
+[2026-04-12 03:23:09]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:23:09]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:23:09]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:23:10]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:23:11]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:23:12]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:23:12]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:23:13]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:23:13]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 927/11264 MiB (8%)
+[2026-04-12 03:23:14]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 03:23:14]   query-api                    [PASS] 6 errors in last 100 lines
+[2026-04-12 03:23:14]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:23:19]   raw_events                   [WARN] query failed
+[2026-04-12 03:23:20]   stg_posts                    [WARN] query failed
+[2026-04-12 03:23:20]   core_posts                   [WARN] query failed
+[2026-04-12 03:23:20]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:23:20]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:23:20]   stg_posts                    [WARN] query failed
+[2026-04-12 03:23:20]   core_posts                   [WARN] query failed
+[2026-04-12 03:23:20]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:23:20]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:23:20]   staging_to_core              [WARN] query failed
+[2026-04-12 03:23:20]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:23:20]   ratios                       [SKIP] no raw data
+[2026-04-12 03:23:20]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:23:20]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:23:21]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:23:21]   health                       [PASS] reachable
+[2026-04-12 03:23:21]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:23:21] CYCLE 2: pass=8 warn=18 fail=0 healed=false
+[2026-04-12 03:23:51]   services                     [PASS] 2/3 running
+[2026-04-12 03:23:51]   spark-unified restarts       [WARN] 8 total restarts
+[2026-04-12 03:23:52]   query-api                    [PASS] 604.2MiB / 2GiB (29%)
+[2026-04-12 03:23:55]   grafana                      [PASS] 133.3MiB / 512MiB (25%)
+[2026-04-12 03:23:55]   raw_events                   [WARN] no data yet
+[2026-04-12 03:23:55]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:23:55]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:23:55]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:23:55]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:23:56]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:23:57]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:23:58]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:23:58]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:23:59]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 931/11264 MiB (8%)
+[2026-04-12 03:23:59]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 03:23:59]   query-api                    [PASS] 6 errors in last 100 lines
+[2026-04-12 03:23:59]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:24:05]   raw_events                   [WARN] query failed
+[2026-04-12 03:24:05]   stg_posts                    [WARN] query failed
+[2026-04-12 03:24:05]   core_posts                   [WARN] query failed
+[2026-04-12 03:24:05]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:24:05]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:24:05]   stg_posts                    [WARN] query failed
+[2026-04-12 03:24:06]   core_posts                   [WARN] query failed
+[2026-04-12 03:24:06]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:24:06]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:24:06]   staging_to_core              [WARN] query failed
+[2026-04-12 03:24:06]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:24:06]   ratios                       [SKIP] no raw data
+[2026-04-12 03:24:06]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:24:06]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:24:06]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:24:06]   health                       [PASS] reachable
+[2026-04-12 03:24:06]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:24:06] HEAL: restarting spark-unified (container not running (state: restarting))
+ Container spark-unified Restarting 
+ Container spark-unified Started 
+[2026-04-12 03:24:07]   spark-unified                [WARN] restarted: container not running (state: restarting)
+[2026-04-12 03:24:07] CYCLE 3: pass=8 warn=20 fail=0 healed=true
+[2026-04-12 03:24:30] monitor shutting down
+[2026-04-12 03:25:11] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:25:11]   services                     [PASS] 3/3 running
+[2026-04-12 03:25:12]   spark-unified                [PASS] 664.7MiB / 14GiB (4%)
+[2026-04-12 03:25:14]   query-api                    [PASS] 492.1MiB / 2GiB (24%)
+[2026-04-12 03:25:16]   grafana                      [PASS] 80.11MiB / 512MiB (15%)
+[2026-04-12 03:25:33] monitor shutting down
+[2026-04-12 03:29:09] monitor starting (interval=30s, dry_run=false, once=true)
+[2026-04-12 03:29:11]   services                     [PASS] 3/3 running
+[2026-04-12 03:29:12]   spark-unified                [PASS] 8.844GiB / 14GiB (63%)
+[2026-04-12 03:29:14]   query-api                    [PASS] 647.9MiB / 2GiB (31%)
+[2026-04-12 03:29:16]   grafana                      [PASS] 138MiB / 512MiB (26%)
+[2026-04-12 03:29:18]   raw_events                   [PASS] 1s
+[2026-04-12 03:29:18]   stg_posts                    [PASS] 11s
+[2026-04-12 03:29:18]   core_posts                   [PASS] 11s
+[2026-04-12 03:29:18]   core_post_sentiment          [PASS] 21s
+[2026-04-12 03:29:19]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:29:20]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:29:21]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:29:22]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:29:23]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:29:23]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 3795/11264 MiB (33%)
+[2026-04-12 03:29:23]   spark-unified                [PASS] clean
+[2026-04-12 03:29:24]   query-api                    [PASS] clean
+[2026-04-12 03:29:24]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:29:29]   raw_events                   [PASS] 238 events/sec (14315 in 60s)
+[2026-04-12 03:29:29]   stg_posts                    [PASS] 25 events/sec (1508 in 60s)
+[2026-04-12 03:29:29]   core_posts                   [PASS] 23 events/sec (1388 in 60s)
+[2026-04-12 03:29:29]   core_post_sentiment          [PASS] 16 events/sec (987 in 60s)
+[2026-04-12 03:29:58]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:30:00]   stg_posts                    [PASS] no duplicates in last 300s
+[2026-04-12 03:30:00]   core_posts                   [PASS] no duplicates in last 300s
+[2026-04-12 03:30:00]   core_post_sentiment          [PASS] no duplicates in last 300s
+[2026-04-12 03:30:02]   raw_to_staging               [PASS] 0% loss (8605/8605)
+[2026-04-12 03:30:02]   staging_to_core              [FAIL] 10% loss (7678/8605) in last 300s
+[2026-04-12 03:30:02] [2026-04-12 03:30:02] BREACH: data_loss_staging_to_core — actual=10% threshold=<5%
+[2026-04-12 03:30:02]   core_to_sentiment            [FAIL] 6% loss (7144/7678) in last 300s
+[2026-04-12 03:30:02] [2026-04-12 03:30:02] BREACH: data_loss_core_to_sentiment — actual=6% threshold=<5%
+[2026-04-12 03:30:05]   staging/raw                  [PASS] 96% (SLA: >85%)
+[2026-04-12 03:30:05]   posts/raw                    [PASS] 12% (expected: 10-30%)
+[2026-04-12 03:30:05]   likes/raw                    [PASS] 65% (expected: 35-65%)
+[2026-04-12 03:30:05]   sentiment coverage           [FAIL] 93% (SLA: >95%)
+[2026-04-12 03:30:05] [2026-04-12 03:30:05] BREACH: sentiment_coverage — actual=93% threshold=>95%
+[2026-04-12 03:30:34]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:31:03]   drift                        [WARN] writer=-1 reader=84375 (one side failed)
+[2026-04-12 03:31:03]   health                       [PASS] reachable
+[2026-04-12 03:31:06]   queries                      [PASS] 40 active, none stuck
+[2026-04-12 03:31:06] CYCLE 1: pass=25 warn=7 fail=3 healed=false
+[2026-04-12 03:36:00] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:36:08]   services                     [PASS] 3/3 running
+[2026-04-12 03:36:13]   query-api                    [PASS] 492.8MiB / 2GiB (24%)
+[2026-04-12 03:36:15]   grafana                      [PASS] 131.2MiB / 512MiB (25%)
+[2026-04-12 03:36:15]   raw_events                   [WARN] no data yet
+[2026-04-12 03:36:15]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:36:15]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:36:15]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:36:17]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:36:18]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:36:20]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:36:21]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:36:22]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:36:22]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 1124/11264 MiB (9%)
+[2026-04-12 03:36:22]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 03:36:22]   query-api                    [PASS] 2 errors in last 100 lines
+[2026-04-12 03:36:22]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:36:23]   raw_events                   [WARN] query failed
+[2026-04-12 03:36:23]   stg_posts                    [WARN] query failed
+[2026-04-12 03:36:23]   core_posts                   [WARN] query failed
+[2026-04-12 03:36:23]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:36:28]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:36:28]   stg_posts                    [WARN] query failed
+[2026-04-12 03:36:28]   core_posts                   [WARN] query failed
+[2026-04-12 03:36:28]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:36:29]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:36:29]   staging_to_core              [WARN] query failed
+[2026-04-12 03:36:29]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:36:29]   ratios                       [SKIP] no raw data
+[2026-04-12 03:36:29]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:36:29]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:36:29]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:36:29]   health                       [PASS] reachable
+[2026-04-12 03:36:30]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:36:30] CYCLE 1: pass=8 warn=18 fail=0 healed=false
+[2026-04-12 03:36:39] monitor shutting down
+[2026-04-12 03:37:34] monitor starting (interval=30s, dry_run=false, once=true)
+[2026-04-12 03:37:36]   services                     [PASS] 2/3 running
+[2026-04-12 03:37:36]   spark-unified restarts       [WARN] 9 total restarts
+[2026-04-12 03:37:37]   query-api                    [PASS] 621.2MiB / 2GiB (30%)
+[2026-04-12 03:37:39]   grafana                      [PASS] 131.2MiB / 512MiB (25%)
+[2026-04-12 03:37:40]   raw_events                   [WARN] no data yet
+[2026-04-12 03:37:40]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:37:40]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:37:40]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:37:40]   raw_events                   [WARN] query failed
+[2026-04-12 03:37:40]   stg_posts                    [WARN] query failed
+[2026-04-12 03:37:40]   core_posts                   [WARN] query failed
+[2026-04-12 03:37:40]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:37:40]   stg_posts                    [WARN] query failed
+[2026-04-12 03:37:40]   core_posts                   [WARN] query failed
+[2026-04-12 03:37:40]   core_post_sentiment          [WARN] query failed
+[2026-04-12 03:37:40]   raw_to_staging               [WARN] query failed
+[2026-04-12 03:37:40]   staging_to_core              [WARN] query failed
+[2026-04-12 03:37:40]   core_to_sentiment            [WARN] query failed
+[2026-04-12 03:37:40]   ratios                       [SKIP] no raw data
+[2026-04-12 03:37:40]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:37:40]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:37:41]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:37:42]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:37:43]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:37:43]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:37:43]   gpu                          [WARN] not detected — running in CPU mode
+[2026-04-12 03:37:44]   spark-unified                [PASS] 5 errors in last 100 lines
+[2026-04-12 03:37:44]   query-api                    [PASS] 2 errors in last 100 lines
+[2026-04-12 03:37:44]   grafana                      [PASS] 3 errors in last 100 lines
+[2026-04-12 03:37:44]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:37:44]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:37:44]   drift                        [WARN] writer=-1 reader=-1 (one side failed)
+[2026-04-12 03:37:44]   health                       [PASS] reachable
+[2026-04-12 03:37:44]   streaming                    [SKIP] spark-unified not running
+[2026-04-12 03:37:44] HEAL: restarting spark-unified (container not running (state: restarting))
+ Container spark-unified Restarting 
+ Container spark-unified Started 
+[2026-04-12 03:37:45]   spark-unified                [WARN] restarted: container not running (state: restarting)
+[2026-04-12 03:37:45] CYCLE 1: pass=7 warn=21 fail=0 healed=true
+[2026-04-12 03:45:11] monitor starting (interval=30s, dry_run=false, once=false)
+[2026-04-12 03:45:13]   services                     [PASS] 3/3 running
+[2026-04-12 03:45:14]   spark-unified                [PASS] 818.7MiB / 14GiB (5%)
+[2026-04-12 03:45:16]   query-api                    [PASS] 505.1MiB / 2GiB (24%)
+[2026-04-12 03:45:18]   grafana                      [PASS] 123.2MiB / 512MiB (24%)
+[2026-04-12 03:45:25]   raw_events                   [WARN] no data yet
+[2026-04-12 03:45:25]   stg_posts                    [SKIP] upstream stale
+[2026-04-12 03:45:25]   core_posts                   [SKIP] upstream stale
+[2026-04-12 03:45:25]   core_post_sentiment          [SKIP] upstream stale
+[2026-04-12 03:45:26]   raw_events                   [PASS] 0 events/sec (0 in 60s)
+[2026-04-12 03:45:26]   stg_posts                    [PASS] 0 events/sec (0 in 60s)
+[2026-04-12 03:45:26]   core_posts                   [PASS] 0 events/sec (0 in 60s)
+[2026-04-12 03:45:26]   core_post_sentiment          [PASS] 0 events/sec (0 in 60s)
+[2026-04-12 03:45:26]   stg_posts                    [PASS] no duplicates in last 300s
+[2026-04-12 03:45:26]   core_posts                   [PASS] no duplicates in last 300s
+[2026-04-12 03:45:26]   core_post_sentiment          [PASS] no duplicates in last 300s
+[2026-04-12 03:45:26]   raw_to_staging               [SKIP] no upstream data
+[2026-04-12 03:45:26]   staging_to_core              [SKIP] no upstream data
+[2026-04-12 03:45:26]   core_to_sentiment            [SKIP] no upstream data
+[2026-04-12 03:45:26]   ratios                       [SKIP] no raw data
+[2026-04-12 03:45:26]   sentiment coverage           [SKIP] no core_posts data
+[2026-04-12 03:45:27]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:45:28]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:45:29]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:45:30]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:45:31]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:45:31]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 1149/11264 MiB (10%)
+[2026-04-12 03:45:31]   spark-unified                [PASS] clean
+[2026-04-12 03:45:32]   query-api                    [PASS] clean
+[2026-04-12 03:45:32]   grafana                      [PASS] 5 errors in last 100 lines
+[2026-04-12 03:46:02]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:46:32]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:47:02]   drift                        [WARN] writer=-1 reader=25844 (one side failed)
+[2026-04-12 03:47:02]   health                       [PASS] reachable
+[2026-04-12 03:47:04]   queries                      [PASS] 22 active, none stuck
+[2026-04-12 03:47:04] CYCLE 1: pass=17 warn=8 fail=0 healed=false
+[2026-04-12 03:47:35]   services                     [PASS] 3/3 running
+[2026-04-12 03:47:36]   spark-unified                [PASS] 7.284GiB / 14GiB (52%)
+[2026-04-12 03:47:38]   query-api                    [PASS] 919.7MiB / 2GiB (44%)
+[2026-04-12 03:47:40]   grafana                      [PASS] 131.3MiB / 512MiB (25%)
+[2026-04-12 03:47:47]   raw_events                   [PASS] 1s
+[2026-04-12 03:47:47]   stg_posts                    [PASS] 6s
+[2026-04-12 03:47:47]   core_posts                   [PASS] 11s
+[2026-04-12 03:47:47]   core_post_sentiment          [FAIL] 140s (SLA: <60s) [streak 1/3]
+[2026-04-12 03:47:47] [2026-04-12 03:47:47] BREACH: freshness_core_post_sentiment — actual=140s threshold=<60s
+[2026-04-12 03:47:47]   raw_events                   [PASS] 239 events/sec (14362 in 60s)
+[2026-04-12 03:47:47]   stg_posts                    [PASS] 28 events/sec (1684 in 60s)
+[2026-04-12 03:47:47]   core_posts                   [PASS] 23 events/sec (1405 in 60s)
+[2026-04-12 03:47:47]   core_post_sentiment          [PASS] 0 events/sec (0 in 60s)
+[2026-04-12 03:47:47]   stg_posts                    [PASS] no duplicates in last 300s
+[2026-04-12 03:47:47]   core_posts                   [PASS] no duplicates in last 300s
+[2026-04-12 03:47:47]   core_post_sentiment          [PASS] no duplicates in last 300s
+[2026-04-12 03:47:47]   raw_to_staging               [PASS] 3% loss (4570/4718)
+[2026-04-12 03:47:47]   staging_to_core              [FAIL] 8% loss (4168/4570) in last 300s
+[2026-04-12 03:47:47] [2026-04-12 03:47:47] BREACH: data_loss_staging_to_core — actual=8% threshold=<5%
+[2026-04-12 03:47:47]   core_to_sentiment            [FAIL] 94% loss (233/4168) in last 300s
+[2026-04-12 03:47:47] [2026-04-12 03:47:47] BREACH: data_loss_core_to_sentiment — actual=94% threshold=<5%
+[2026-04-12 03:47:48]   staging/raw                  [PASS] 89% (SLA: >85%)
+[2026-04-12 03:47:48]   posts/raw                    [PASS] 12% (expected: 10-30%)
+[2026-04-12 03:47:48]   likes/raw                    [PASS] 59% (expected: 35-65%)
+[2026-04-12 03:47:48]   sentiment coverage           [FAIL] 5% (SLA: >95%)
+[2026-04-12 03:47:48] [2026-04-12 03:47:48] BREACH: sentiment_coverage — actual=5% threshold=>95%
+[2026-04-12 03:47:49]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:47:50]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:47:51]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:47:52]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:47:53]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:47:53]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 3978/11264 MiB (35%)
+[2026-04-12 03:47:53]   spark-unified                [PASS] clean
+[2026-04-12 03:47:53]   query-api                    [PASS] clean
+[2026-04-12 03:47:53]   grafana                      [PASS] 5 errors in last 100 lines
+[2026-04-12 03:48:09] monitor starting (interval=30s, dry_run=false, once=true)
+[2026-04-12 03:48:10]   services                     [PASS] 3/3 running
+[2026-04-12 03:48:12]   spark-unified                [PASS] 8.874GiB / 14GiB (63%)
+[2026-04-12 03:48:13]   query-api                    [PASS] 1.347GiB / 2GiB (67%)
+[2026-04-12 03:48:15]   grafana                      [PASS] 131.3MiB / 512MiB (25%)
+[2026-04-12 03:48:20]   raw_events                   [PASS] 1s
+[2026-04-12 03:48:20]   stg_posts                    [PASS] 5s
+[2026-04-12 03:48:20]   core_posts                   [PASS] 5s
+[2026-04-12 03:48:20]   core_post_sentiment          [PASS] 20s
+[2026-04-12 03:48:20]   raw_events                   [PASS] 237 events/sec (14243 in 60s)
+[2026-04-12 03:48:20]   stg_posts                    [PASS] 28 events/sec (1726 in 60s)
+[2026-04-12 03:48:20]   core_posts                   [PASS] 26 events/sec (1594 in 60s)
+[2026-04-12 03:48:20]   core_post_sentiment          [PASS] 18 events/sec (1134 in 60s)
+[2026-04-12 03:48:20]   stg_posts                    [PASS] no duplicates in last 300s
+[2026-04-12 03:48:20]   core_posts                   [PASS] no duplicates in last 300s
+[2026-04-12 03:48:20]   core_post_sentiment          [PASS] no duplicates in last 300s
+[2026-04-12 03:48:20]   raw_to_staging               [PASS] 2% loss (5665/5837)
+[2026-04-12 03:48:20]   staging_to_core              [PASS] 5% loss (5343/5665)
+[2026-04-12 03:48:20]   core_to_sentiment            [FAIL] 8% loss (4883/5343) in last 300s
+[2026-04-12 03:48:20] [2026-04-12 03:48:20] BREACH: data_loss_core_to_sentiment — actual=8% threshold=<5%
+[2026-04-12 03:48:20]   staging/raw                  [PASS] 91% (SLA: >85%)
+[2026-04-12 03:48:20]   posts/raw                    [PASS] 12% (expected: 10-30%)
+[2026-04-12 03:48:21]   likes/raw                    [PASS] 60% (expected: 35-65%)
+[2026-04-12 03:48:21]   sentiment coverage           [FAIL] 91% (SLA: >95%)
+[2026-04-12 03:48:21] [2026-04-12 03:48:21] BREACH: sentiment_coverage — actual=91% threshold=>95%
+[2026-04-12 03:48:21] monitor shutting down
+[2026-04-12 03:48:22]   ingest                       [WARN] no checkpoint data
+[2026-04-12 03:48:23]   staging                      [WARN] no checkpoint data
+[2026-04-12 03:48:24]   core-posts                   [WARN] no checkpoint data
+[2026-04-12 03:48:25]   core-engagement              [WARN] no checkpoint data
+[2026-04-12 03:48:26]   sentiment                    [WARN] no checkpoint data
+[2026-04-12 03:48:26]   gpu                          [PASS] NVIDIA GeForce RTX 2080 Ti 3991/11264 MiB (35%)
+[2026-04-12 03:48:26]   spark-unified                [PASS] clean
+[2026-04-12 03:48:26]   query-api                    [PASS] clean
+[2026-04-12 03:48:27]   grafana                      [PASS] 5 errors in last 100 lines
+[2026-04-12 03:48:55]   e2e latency                  [WARN] no data yet
+[2026-04-12 03:49:24]   sentiment                    [SKIP] no sentiment data
+[2026-04-12 03:49:54]   drift                        [WARN] writer=-1 reader=66058 (one side failed)
+[2026-04-12 03:49:54]   health                       [PASS] reachable
+[2026-04-12 03:49:55]   queries                      [PASS] 40 active, none stuck
+[2026-04-12 03:49:55] CYCLE 1: pass=26 warn=7 fail=2 healed=false

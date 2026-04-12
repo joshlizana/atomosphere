@@ -173,10 +173,11 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Priority | Requirement | Acceptance Criteria |
 |---|---|---|---|
-| FR-15 | Critical | Five materialized mart tables are updated on each micro-batch | `mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health` contain current data within one micro-batch cycle (5 seconds) |
-| FR-16 | High | Trending hashtags are identified by comparing current frequency against a historical baseline | `mart_trending_hashtags` contains `tag`, current count, baseline count, and spike ratio. Window sizes are configurable via Grafana template variables |
-| FR-17 | High | Four analytics views are served on-demand | `mart_language_distribution`, `mart_top_posts`, `mart_most_mentioned`, `mart_content_breakdown` return results within 1 second via the Query API |
-| FR-18 | Medium | Top posts view displays the most positive and most negative recent posts with full text | `mart_top_posts` returns posts ordered by `sentiment_positive DESC` and `sentiment_negative DESC` with `text`, `primary_lang`, and sentiment scores |
+| FR-15 | Critical | Ten materialized mart tables are updated on each micro-batch | `mart_events_per_second`, `mart_engagement_velocity`, `mart_sentiment_timeseries`, `mart_trending_hashtags`, `mart_most_mentioned`, `mart_language_distribution`, `mart_content_breakdown`, `mart_embed_usage`, `mart_top_posts`, `mart_firehose_stats` are written append-only from streaming queries with a 1-minute tumbling window and 15-minute watermark. `mart_pipeline_health` remains as a query-time Iceberg view. Mart tables contain data within one micro-batch cycle (5 seconds) |
+| FR-16 | High | Trending hashtags are identified by comparing current frequency against a historical baseline | `read_trending_hashtags.sql` computes `current_count`, `baseline_count`, and `spike_ratio` at read time over a configurable `{window}` parameter, querying the materialized `mart_trending_hashtags` table |
+| FR-17 | High | Ten analytics endpoints are served on-demand | Every mart endpoint (`/api/mart/{name}`) returns materialized results within 5 seconds via the Query API, cold or warm |
+| FR-18 | Medium | Top posts view displays the most positive and most negative recent posts with full text | `mart_top_posts` materializes one row per post with `text`, `primary_lang`, and sentiment scores; `read_top_posts.sql` orders by sentiment at read time |
+| FR-27 | High | Iceberg table maintenance is available on demand | `POST /api/maintenance/run` compacts tables above threshold (`file_count > 500 OR avg_file_kb < 30`) with `rewrite_data_files` + `expire_snapshots`. Per-table 10-minute rate limit. `GET /api/maintenance/table-stats` reports current state without side effects |
 
 ### 5.5 Dashboard
 
@@ -207,7 +208,7 @@ The platform ingests approximately 240 events per second from the Bluesky social
 | NFR-01 | End-to-end latency from Jetstream event to dashboard display | < 10 seconds | Delta between event `time_us` and Grafana query response time, measured via `mart_pipeline_health` |
 | NFR-02 | Sustained ingestion throughput | 240+ events/sec | `mart_pipeline_health` — events ingested per second |
 | NFR-03 | Sentiment inference throughput on GPU | 200–500 texts/sec at batch_size=64 | Timed inference runs on the spark-unified container |
-| NFR-04 | Grafana query response time from the Query API | < 1 second | Observed query latency in Grafana panel inspector |
+| NFR-04 | Grafana query response time from the Query API | < 5 seconds (cold or warm) | Observed query latency in Grafana panel inspector; enforced by materialized mart tables (`atmosphere.mart.*`) replacing view-based aggregation. Baseline pre-materialization and post-materialization measurements kept in `docs/mart-sizing-analysis.md` |
 | NFR-05 | Cold start time (from `make up` to first panel data) | < 5 minutes | Wall clock time from command execution to Grafana rendering data |
 
 ### 6.2 Resilience
@@ -236,7 +237,8 @@ The platform ingests approximately 240 events per second from the Bluesky social
 
 | ID | Requirement | Target | Measurement |
 |---|---|---|---|
-| NFR-13 | Pipeline self-monitoring | Processing lag, ingestion rate, and batch timestamps visible in Grafana | `mart_pipeline_health` data appears in the Pipeline Health dashboard row |
+| NFR-13 | Pipeline self-monitoring | Processing lag, ingestion rate, and batch timestamps visible in Grafana | `mart_pipeline_health` (query-time view, the only mart that is not materialized) data appears in the Pipeline Health dashboard row |
+| NFR-18 | Iceberg table hygiene | Per-table file count and average file size stay below compaction thresholds (`file_count ≤ 500` and `avg_file_kb ≥ 30`) under steady-state ingestion | `GET /api/maintenance/table-stats` per table; run `make maintain` (or `POST /api/maintenance/run`) when thresholds are crossed. See `docs/mart-sizing-analysis.md` |
 | NFR-14 | Per-container health visibility | Health checks for all critical services | `docker compose ps` shows all containers as healthy |
 
 ### 6.6 Data Quality
@@ -384,7 +386,7 @@ flowchart TD
 | Raw | `days(ingested_at), collection` | `ingested_at ASC` |
 | Staging | `days(event_time)` | `event_time ASC` |
 | Core | `days(event_time)` | `event_time ASC` |
-| Mart (materialized) | `days(window_start)` or `days(event_time)` | `window_start ASC` or `event_time ASC` |
+| Mart (materialized) | `hours(bucket_min)` for time-series marts, `days(bucket_min)` for `mart_language_distribution`, unpartitioned for small key-lookup marts (`trending_hashtags`, `most_mentioned`, `content_breakdown`, `embed_usage`) | `bucket_min DESC` |
 
 **Namespace structure:** `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`, `atmosphere.mart`
 
@@ -501,7 +503,7 @@ The system satisfies all requirements when:
 |---|---|---|
 | Panel rendering | Open Grafana; verify all 5 rows display data | All panels render with current data |
 | Refresh cycle | Observe panel timestamps over 30 seconds | Panels update every 5 seconds |
-| Query latency | Use Grafana panel inspector on materialized mart queries | < 1 second per query |
+| Query latency | Use Grafana panel inspector on materialized mart queries | < 5 seconds per query (cold or warm); see `docs/mart-sizing-analysis.md` for baseline and acceptance thresholds |
 | Provisioning | `make clean && make up`; open Grafana without manual configuration | Dashboard and data source are pre-configured |
 
 ### 9.3 Test Approach

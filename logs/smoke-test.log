@@ -1,0 +1,157 @@
+[2026-04-11 17:44:12] === Smoke test started ===
+[2026-04-11 17:44:12] PASS: rustfs — running
+[2026-04-11 17:44:12] PASS: polaris — running
+[2026-04-11 17:44:12] PASS: postgres — running
+[2026-04-11 17:44:12] PASS: spark-unified — running
+[2026-04-11 17:44:13] FAIL: init — state= (expected: exited)
+[2026-04-11 17:44:13] SKIP: spark-thrift — state=not configured (not yet configured)
+[2026-04-11 17:44:13] SKIP: grafana — state=not configured (not yet configured)
+[2026-04-11 17:44:13] SKIP: cloudflared — state=not configured (not yet configured)
+[2026-04-11 17:44:13] FAIL: spark-ui — not accessible at :4040
+[2026-04-11 17:44:13] PASS: checkpoint: ingest-raw — exists
+[2026-04-11 17:44:13] PASS: checkpoint: staging — exists
+[2026-04-11 17:44:13] PASS: checkpoint: core/posts — exists
+[2026-04-11 17:44:13] PASS: checkpoint: core/engagement — exists
+[2026-04-11 17:44:13] PASS: checkpoint: sentiment — exists
+[2026-04-11 17:44:14] PASS: memory usage — 5.964GiB / 14GiB
+[2026-04-11 17:44:16] PASS: GPU — CUDA available
+[2026-04-11 17:44:43] FAIL: spark-sql — no results returned
+[2026-04-11 17:44:43] Smoke test complete: 11 passed, 3 skipped, 3 FAILED
+[2026-04-11 17:47:04] === Smoke test started ===
+[2026-04-11 17:47:04] PASS: rustfs — running
+[2026-04-11 17:47:04] PASS: polaris — running
+[2026-04-11 17:47:04] PASS: postgres — running
+[2026-04-11 17:47:04] PASS: spark-unified — running
+[2026-04-11 17:47:04] PASS: init — completed and removed
+[2026-04-11 17:47:04] SKIP: spark-thrift — not yet configured
+[2026-04-11 17:47:04] SKIP: grafana — not yet configured
+[2026-04-11 17:47:04] SKIP: cloudflared — not yet configured
+[2026-04-11 17:47:05] FAIL: spark-ui — http 302 at :4040
+[2026-04-11 17:47:05] PASS: checkpoint: ingest-raw — exists
+[2026-04-11 17:47:05] PASS: checkpoint: staging — exists
+[2026-04-11 17:47:05] PASS: checkpoint: core/posts — exists
+[2026-04-11 17:47:05] PASS: checkpoint: core/engagement — exists
+[2026-04-11 17:47:05] PASS: checkpoint: sentiment — exists
+[2026-04-11 17:47:06] PASS: memory usage — 5.984GiB / 14GiB
+[2026-04-11 17:47:08] PASS: GPU — CUDA available
+[2026-04-11 17:47:36] PASS: raw_events — 475116 rows
+[2026-04-11 17:47:36] PASS: raw freshness — 117219 rows in last 5 min
+[2026-04-11 17:47:36] PASS: raw fidelity — raw_json, collection, did present
+[2026-04-11 17:47:36] PASS: stg_posts — 53129 rows
+[2026-04-11 17:47:36] PASS: stg_likes — 319373 rows
+[2026-04-11 17:47:36] PASS: stg_reposts — 49268 rows
+[2026-04-11 17:47:36] PASS: stg_follows — 34933 rows
+[2026-04-11 17:47:36] PASS: stg_blocks — 4889 rows
+[2026-04-11 17:47:36] PASS: stg_profiles — 1580 rows
+[2026-04-11 17:47:36] PASS: staging freshness — 12660 stg_posts in last 5 min
+[2026-04-11 17:47:36] PASS: core_posts — 50969 rows
+[2026-04-11 17:47:36] PASS: core_mentions — 3681 rows
+[2026-04-11 17:47:36] PASS: core_hashtags — 15065 rows
+[2026-04-11 17:47:36] PASS: core_engagement — 363204 rows
+[2026-04-11 17:47:36] PASS: core freshness — 12059 core_posts in last 5 min
+[2026-04-11 17:47:36] PASS: post enrichment — 50969 posts with content_type
+[2026-04-11 17:47:36] PASS: mart_eps — 1081 rows
+[2026-04-11 17:47:36] PASS: mart_hashtags — 50 rows
+[2026-04-11 17:47:36] PASS: mart_velocity — 112 rows
+[2026-04-11 17:47:36] PASS: mart_health — 1 rows
+[2026-04-11 17:47:36] PASS: mart_sentiment — 55 rows
+[2026-04-11 17:47:36] PASS: sentiment table — 50726 rows
+[2026-04-11 17:47:36] PASS: score completeness — zero null labels
+[2026-04-11 17:47:36] FAIL: score validity — 50726 invalid sums
+[2026-04-11 17:47:36] PASS: label distribution — all 3 classes present
+[2026-04-11 17:47:36] PASS: confidence range — all in [0.33, 1.0]
+[2026-04-11 17:47:36] PASS: sentiment coverage — 99% (50726 / 50969)
+[2026-04-11 17:47:36] SKIP: multilingual — no non-English posts yet
+[2026-04-11 17:47:36] Smoke test complete: 38 passed, 4 skipped, 2 FAILED
+[2026-04-11 17:55:55] === Smoke test started ===
+[2026-04-11 17:55:56] PASS: rustfs — running
+[2026-04-11 17:55:56] PASS: polaris — running
+[2026-04-11 17:55:56] PASS: postgres — running
+[2026-04-11 17:55:56] PASS: spark-unified — running
+[2026-04-11 17:55:56] PASS: init — completed and removed
+[2026-04-11 17:55:56] SKIP: spark-thrift — not yet configured
+[2026-04-11 17:55:56] SKIP: grafana — not yet configured
+[2026-04-11 17:55:56] SKIP: cloudflared — not yet configured
+[2026-04-11 17:55:56] PASS: spark-ui — accessible at :4040 (http 302)
+[2026-04-11 17:55:56] PASS: checkpoint: ingest-raw — exists
+[2026-04-11 17:55:56] PASS: checkpoint: staging — exists
+[2026-04-11 17:55:57] PASS: checkpoint: core/posts — exists
+[2026-04-11 17:55:57] PASS: checkpoint: core/engagement — exists
+[2026-04-11 17:55:57] PASS: checkpoint: sentiment — exists
+[2026-04-11 17:55:58] PASS: memory usage — 5.916GiB / 14GiB
+[2026-04-11 17:55:59] PASS: GPU — CUDA available
+[2026-04-11 17:56:25] PASS: raw_events — 131917 rows
+[2026-04-11 17:56:25] PASS: raw freshness — 118144 rows in last 5 min
+[2026-04-11 17:56:25] PASS: raw fidelity — raw_json, collection, did present
+[2026-04-11 17:56:25] PASS: stg_posts — 13488 rows
+[2026-04-11 17:56:25] PASS: stg_likes — 90284 rows
+[2026-04-11 17:56:25] PASS: stg_reposts — 14211 rows
+[2026-04-11 17:56:25] PASS: stg_follows — 9343 rows
+[2026-04-11 17:56:25] PASS: stg_blocks — 988 rows
+[2026-04-11 17:56:25] PASS: stg_profiles — 480 rows
+[2026-04-11 17:56:25] PASS: staging freshness — 11202 stg_posts in last 5 min
+[2026-04-11 17:56:25] PASS: core_posts — 12746 rows
+[2026-04-11 17:56:25] PASS: core_mentions — 398 rows
+[2026-04-11 17:56:25] PASS: core_hashtags — 3815 rows
+[2026-04-11 17:56:25] PASS: core_engagement — 103000 rows
+[2026-04-11 17:56:25] PASS: core freshness — 10521 core_posts in last 5 min
+[2026-04-11 17:56:25] PASS: post enrichment — 12746 posts with content_type
+[2026-04-11 17:56:25] PASS: mart_eps — 1039 rows
+[2026-04-11 17:56:25] PASS: mart_hashtags — 50 rows
+[2026-04-11 17:56:25] PASS: mart_velocity — 112 rows
+[2026-04-11 17:56:25] PASS: mart_health — 1 rows
+[2026-04-11 17:56:25] PASS: mart_sentiment — 55 rows
+[2026-04-11 17:56:25] PASS: sentiment table — 12572 rows
+[2026-04-11 17:56:25] PASS: score completeness — zero null labels
+[2026-04-11 17:56:25] PASS: score validity — all rows sum to 1.0
+[2026-04-11 17:56:25] PASS: label distribution — all 3 classes present
+[2026-04-11 17:56:25] PASS: confidence range — all in [0.33, 1.0]
+[2026-04-11 17:56:25] PASS: sentiment coverage — 98% (12572 / 12746)
+[2026-04-11 17:56:25] SKIP: multilingual — no non-English posts yet
+[2026-04-11 17:56:25] Smoke test complete: 40 passed, 4 skipped, 0 failed
+[2026-04-11 18:37:24] === Smoke test started ===
+[2026-04-11 18:37:24] PASS: rustfs — running
+[2026-04-11 18:37:24] PASS: polaris — running
+[2026-04-11 18:37:25] PASS: postgres — running
+[2026-04-11 18:37:25] PASS: spark-unified — running
+[2026-04-11 18:37:25] PASS: query-api — running
+[2026-04-11 18:37:25] PASS: init — completed and removed
+[2026-04-11 18:37:25] PASS: grafana — running
+[2026-04-11 18:37:25] SKIP: cloudflared — not yet configured
+[2026-04-11 18:37:25] PASS: spark-ui — accessible at :4040 (http 302)
+[2026-04-11 18:37:25] PASS: checkpoint: ingest-raw — exists
+[2026-04-11 18:37:26] PASS: checkpoint: staging — exists
+[2026-04-11 18:37:26] PASS: checkpoint: core/posts — exists
+[2026-04-11 18:37:26] PASS: checkpoint: core/engagement — exists
+[2026-04-11 18:37:26] PASS: checkpoint: sentiment — exists
+[2026-04-11 18:37:27] PASS: memory usage — 5.315GiB / 14GiB
+[2026-04-11 18:37:29] PASS: GPU — CUDA available
+[2026-04-11 18:37:56] PASS: raw_events — 102802 rows
+[2026-04-11 18:37:56] PASS: raw freshness — 102802 rows in last 5 min
+[2026-04-11 18:37:56] PASS: raw fidelity — raw_json, collection, did present
+[2026-04-11 18:37:56] PASS: stg_posts — 11870 rows
+[2026-04-11 18:37:56] PASS: stg_likes — 66427 rows
+[2026-04-11 18:37:56] PASS: stg_reposts — 10660 rows
+[2026-04-11 18:37:56] PASS: stg_follows — 8727 rows
+[2026-04-11 18:37:56] PASS: stg_blocks — 1726 rows
+[2026-04-11 18:37:56] PASS: stg_profiles — 332 rows
+[2026-04-11 18:37:56] PASS: staging freshness — 11870 stg_posts in last 5 min
+[2026-04-11 18:37:56] PASS: core_posts — 11210 rows
+[2026-04-11 18:37:56] PASS: core_mentions — 1455 rows
+[2026-04-11 18:37:56] PASS: core_hashtags — 3200 rows
+[2026-04-11 18:37:56] PASS: core_engagement — 76263 rows
+[2026-04-11 18:37:56] PASS: core freshness — 11210 core_posts in last 5 min
+[2026-04-11 18:37:56] PASS: post enrichment — 11210 posts with content_type
+[2026-04-11 18:37:56] PASS: mart_eps — 934 rows
+[2026-04-11 18:37:56] PASS: mart_hashtags — 50 rows
+[2026-04-11 18:37:56] PASS: mart_velocity — 104 rows
+[2026-04-11 18:37:56] PASS: mart_health — 1 rows
+[2026-04-11 18:37:56] PASS: mart_sentiment — 49 rows
+[2026-04-11 18:37:56] PASS: sentiment table — 10599 rows
+[2026-04-11 18:37:56] PASS: score completeness — zero null labels
+[2026-04-11 18:37:56] PASS: score validity — all rows sum to 1.0
+[2026-04-11 18:37:56] PASS: label distribution — all 3 classes present
+[2026-04-11 18:37:56] PASS: confidence range — all in [0.33, 1.0]
+[2026-04-11 18:37:56] PASS: sentiment coverage — 94% (10599 / 11210)
+[2026-04-11 18:37:56] SKIP: multilingual — no non-English posts yet
+[2026-04-11 18:37:56] Smoke test complete: 42 passed, 2 skipped, 0 failed

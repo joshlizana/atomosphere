@@ -1,0 +1,35 @@
+Starting sizing job at http://localhost:8000/api/analysis/sizing ...
+Job started: 83ac8f40-ef15-4670-8003-33ddc949f127
+Dotfile: reports/.last-job.json
+Polling job 83ac8f40-ef15-4670-8003-33ddc949f127 (timeout 300s) ...
+[poll  1 @ 04:45:02Z +  0s] status=running stage=tables       progress=0/12
+[poll  2 @ 04:45:07Z +  5s] status=running stage=tables       progress=0/12
+[poll  3 @ 04:45:12Z + 10s] status=running stage=tables       progress=4/12
+[poll  4 @ 04:45:17Z + 15s] status=running stage=tables       progress=9/12
+[poll  5 @ 04:45:22Z + 20s] status=running stage=tables       progress=10/12
+[poll  6 @ 04:45:27Z + 25s] status=running stage=tables       progress=10/12
+[poll  7 @ 04:45:32Z + 30s] status=running stage=mart_queries progress=0/10
+[poll  8 @ 04:45:37Z + 35s] status=running stage=mart_queries progress=0/10
+[poll  9 @ 04:45:42Z + 40s] status=running stage=mart_queries progress=0/10
+[poll 10 @ 04:45:47Z + 45s] status=running stage=mart_queries progress=0/10
+[poll 11 @ 04:45:52Z + 50s] status=running stage=mart_queries progress=0/10
+[poll 12 @ 04:45:57Z + 55s] status=running stage=mart_queries progress=1/10
+[poll 13 @ 04:46:02Z + 60s] status=running stage=mart_queries progress=1/10
+[poll 14 @ 04:46:07Z + 65s] status=running stage=mart_queries progress=1/10
+[poll 15 @ 04:46:12Z + 70s] status=running stage=mart_queries progress=1/10
+[poll 16 @ 04:46:17Z + 75s] status=running stage=mart_queries progress=1/10
+[poll 17 @ 04:46:22Z + 80s] status=running stage=mart_queries progress=1/10
+[poll 18 @ 04:46:27Z + 85s] status=running stage=mart_queries progress=1/10
+[poll 19 @ 04:46:32Z + 90s] status=running stage=mart_queries progress=1/10
+[poll 20 @ 04:46:37Z + 95s] status=running stage=mart_queries progress=2/10
+[poll 21 @ 04:46:42Z +100s] status=running stage=mart_queries progress=5/10
+[poll 22 @ 04:46:47Z +105s] status=running stage=mart_queries progress=7/10
+[poll 23 @ 04:46:53Z +111s] status=running stage=mart_queries progress=7/10
+[poll 24 @ 04:46:58Z +116s] status=running stage=mart_queries progress=7/10
+[poll 25 @ 04:47:03Z +121s] status=running stage=mart_queries progress=7/10
+[poll 26 @ 04:47:08Z +126s] status=running stage=mart_queries progress=8/10
+[poll 27 @ 04:47:13Z +131s] status=running stage=mart_queries progress=9/10
+[poll 28 @ 04:47:18Z +136s] status=running stage=mart_queries progress=9/10
+[poll 29 @ 04:47:23Z +141s] status=running stage=mart_queries progress=9/10
+[poll 30 @ 04:47:28Z +146s] status=done    stage=mart_queries progress=10/10
+Saved reports/sizing-20260412-044728.json

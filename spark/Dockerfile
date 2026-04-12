@@ -20,6 +20,7 @@ COPY sources/ /opt/spark/work-dir/spark/sources/
 COPY ingestion/ /opt/spark/work-dir/spark/ingestion/
 COPY transforms/ /opt/spark/work-dir/spark/transforms/
 COPY serving/ /opt/spark/work-dir/spark/serving/
+COPY analysis/ /opt/spark/work-dir/spark/analysis/
 
 RUN mkdir -p /opt/spark/checkpoints && chown spark:spark /opt/spark/checkpoints
 

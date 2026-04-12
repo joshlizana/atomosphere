@@ -87,9 +87,12 @@ Once running, open Grafana at [http://localhost:3000](http://localhost:3000) to 
 
 | Requirement | Notes |
 |---|---|
-| Docker with Compose V2 | |
-| NVIDIA GPU + drivers + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) | For GPU sentiment inference; falls back to CPU without it |
-| 32 GB RAM | ~22 GB for containers, ~8 GB host reserve |
+| OS | Linux, macOS, or Windows + WSL2 |
+| Docker | Compose V2 |
+| NVIDIA GPU | + drivers + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) |
+| 32 GB RAM | ~24 GB reserved by stack |
+| 30 GB disk | |
+| `git`, `make` | |
 
 ### Commands
 

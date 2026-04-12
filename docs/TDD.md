@@ -135,7 +135,7 @@ All four streaming layers run in a single unified Spark process (`spark-unified`
 
 5. **query-api** exposes all Iceberg tables (raw through mart) as a REST API endpoint. Grafana connects via the Infinity datasource plugin and refreshes panels every 5 seconds.
 
-Additionally, the core layer materializes mart-layer aggregation tables (`mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health`) from core tables on each micro-batch. Less frequently queried analytics are served as Iceberg views.
+Additionally, `spark-unified` runs the mart layer as **10 independent streaming queries** (one per materialized mart) that read upstream Iceberg tables with a 1-minute tumbling event-time window and 15-minute watermark, and append pre-aggregated rows to `atmosphere.mart.*`. `mart_pipeline_health` is the only mart that remains a query-time Iceberg view (metadata, not data). Top-N aggregation happens at read time in the Query API — mart tables are append-only. See §5.5.
 
 ```mermaid
 flowchart LR
@@ -479,24 +479,40 @@ All staging tables share a common set of envelope columns derived from the raw e
 
 ### 5.5 Mart Layer
 
-**Materialized tables** (written by the core layer on each micro-batch):
+The mart layer is **ten streaming Iceberg tables** plus one query-time view (`mart_pipeline_health`). Each materialized mart runs as its own Structured Streaming query inside `spark-unified`, reading an upstream Iceberg source, applying a 1-minute tumbling event-time window with a 15-minute watermark, and appending pre-aggregated rows. Dashboards read the mart tables directly; aggregation cost is O(buckets), not O(upstream rows). See `spark/transforms/marts.py` and `docs/mart-sizing-analysis.md`.
 
-| Table | Description |
-|---|---|
-| `mart_sentiment_timeseries` | Rolling sentiment averages by window (5-second, 1-minute, 5-minute). Positive/negative/neutral distribution over time. |
-| `mart_events_per_second` | Events per second by collection. Updated each batch. Primary pipeline throughput metric. |
-| `mart_trending_hashtags` | Top-N hashtags with current count vs. baseline count and spike ratio. Window sizes configurable via Grafana template variables. |
-| `mart_engagement_velocity` | Likes/sec, reposts/sec, follows/sec over rolling windows. |
-| `mart_pipeline_health` | Events ingested per batch, processing lag (event time vs. wall clock), last successful batch timestamp per container. Self-monitoring panel data. |
+**No write-time top-N.** Mart tables store every `(bucket, key)` pair and let the read SQL apply `ORDER BY ... LIMIT N`. This avoids streaming top-N brittleness and keeps mart tables append-only; storage cost is trivial (~16 MB stack-wide for 10 marts × 7 days).
 
-**Views** (served on-demand via the query-api service):
+**Materialized tables:**
+
+| Table | Source | Grouping Key | Description |
+|---|---|---|---|
+| `mart_events_per_second` | `raw.raw_events` | — | Pipeline throughput per 1-minute bucket. |
+| `mart_engagement_velocity` | `core.core_engagement` | `event_type` | Likes/reposts/follows per minute, grouped by event type. |
+| `mart_sentiment_timeseries` | `core.core_post_sentiment` | `sentiment_label` | Positive/negative/neutral counts per minute. |
+| `mart_trending_hashtags` | `core.core_hashtags` | `tag` | Tag counts per minute. Spike ratio computed at read time by `read_trending_hashtags.sql` with `{window}` parameter. |
+| `mart_most_mentioned` | `core.core_mentions` | `mentioned_did` | Mention counts per minute per target DID. |
+| `mart_language_distribution` | `core.core_posts` | `primary_lang` | Post counts per language per minute. Partitioned `days(bucket_min)` (24-hour retention). |
+| `mart_content_breakdown` | `core.core_posts` | `content_type` | Post counts by content type (original/reply/quote) per minute. |
+| `mart_embed_usage` | `core.core_posts` | `embed_type` | Post counts by embed type (images/external/record/video) per minute. |
+| `mart_firehose_stats` | `raw.raw_events` | `collection` | Per-collection event count + approx unique DIDs (HLL). Feeds the "Total Events" and "Active Users" stat panels. |
+| `mart_top_posts` | `core.core_posts ⨝ core.core_post_sentiment` | — | Stream-stream inner join materialized one row per post with text, language, content type, and sentiment scores. |
+
+**Query-time view:**
 
 | View | Description |
 |---|---|
-| `mart_language_distribution` | Language breakdown over a configurable time window. |
-| `mart_top_posts` | Most positive and most negative recent posts with full text. |
-| `mart_most_mentioned` | Top mentioned accounts over a configurable window. |
-| `mart_content_breakdown` | Original vs. reply ratio, text-only vs. media, embed type distribution. |
+| `mart_pipeline_health` | Self-monitoring metrics (events/sec, processing lag, last batch timestamp). Remains an Iceberg view because it is metadata, already <4s warm, and must reflect up-to-the-minute state without watermark delay. Registered by `core.py`. |
+
+**Windowing and triggers:**
+
+- Tumbling window: 1 minute (`bucket_min = window.start`).
+- Watermark: 15 minutes on event time.
+- Output mode: `append` — closed windows emit once the watermark passes.
+- Trigger: `processingTime="5 seconds"` (FR-10 alignment).
+- Write sort: `bucket_min DESC` (Iceberg `WRITE ORDERED BY`).
+
+**Mart DDL nullability:** Mart columns are declared without `NOT NULL` because `window.start` and grouping columns read from upstream Iceberg tables are structurally `optional` at the Spark schema level. Iceberg's schema compatibility check rejects writing an optional column into a required one even when the rows are never null in practice. The streaming SQL (not the DDL) is the source of truth for non-null semantics.
 
 ### 5.6 Partitioning and Sort Order Strategy
 
@@ -505,7 +521,7 @@ All staging tables share a common set of envelope columns derived from the raw e
 | Raw | `days(ingested_at), collection` | `ingested_at` | Day + collection pruning. Collection as secondary partition skips irrelevant event types on filtered reads. |
 | Staging | `days(event_time)` | `event_time` | Daily partitions. Collection-level separation is handled by having one table per collection. |
 | Core | `days(event_time)` | `event_time` | Consistent with staging. Time-range queries are the primary access pattern. |
-| Mart (materialized) | `days(window_start)` or `days(event_time)` | `window_start` or `event_time` | Aligned to dashboard time-range queries. Grafana always filters on time. |
+| Mart (materialized) | `hours(bucket_min)` for time-series marts; `days(bucket_min)` for `mart_language_distribution`; unpartitioned for small key-lookup marts (`trending_hashtags`, `most_mentioned`, `content_breakdown`, `embed_usage`) | `bucket_min DESC` | Time-series marts partition by hour so dashboard time-range scans touch 1 manifest per hour. Small key-lookup marts stay unpartitioned — they are tiny enough (≤ a few MB) that partitioning adds manifest overhead without pruning benefit. |
 
 Data retention is set to **30 days** across all layers. Expired partitions are dropped by a maintenance routine.
 
@@ -1103,9 +1119,13 @@ The XLM-RoBERTa model runs on GPU when available (`device=0`) and adapts to CPU 
 
 The spark-unified process and query-api service read and write table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-process coordination. Both processes share a consistent view of table state.
 
-### 15.7 Hybrid materialized + view mart layer
+### 15.7 Fully materialized mart layer
 
-Frequently queried marts (`sentiment_timeseries`, `events_per_second`, `trending_hashtags`, `engagement_velocity`, `pipeline_health`) are materialized as Iceberg tables, updated on each micro-batch by the core layer. Less frequent analytics (`language_distribution`, `top_posts`, `most_mentioned`, `content_breakdown`) are served as views through the query-api service. Materialized marts deliver sub-second query response times for Grafana's 5-second refresh cycle.
+All 10 analytics marts are materialized as streaming Iceberg tables with 1-minute tumbling windows and 15-minute watermarks. This replaces the earlier hybrid design (5 materialized + 4 views) after the pre-materialization baseline in `docs/mart-sizing-analysis.md` showed every view-based mart except `pipeline_health` exceeded the <5s dashboard-read SLA (warm latencies 16–22s, cold 20–88s). `pipeline_health` remains a query-time view because it is already <4s warm and must reflect up-to-the-minute state without watermark delay. Top-N aggregation (e.g. `ORDER BY count DESC LIMIT 20` for trending hashtags) is applied at read time in the Query API rather than at write time, which avoids streaming top-N brittleness and keeps mart tables append-only. Storage cost is trivial (~16 MB stack-wide for 10 marts × 7 days).
+
+### 15.8 Iceberg compaction endpoint
+
+Streaming writes produce many small files (baseline: ~60 k files across ~1.1 GB under steady state, 17–37 KB avg). The Query API exposes `GET /api/maintenance/table-stats` and `POST /api/maintenance/run` to report per-table state and trigger compaction (`rewrite_data_files` + `expire_snapshots`) inside the query-api SparkSession. Threshold: `file_count > 500 OR avg_file_kb < 30`. Per-table 10-minute rate limit prevents thrashing. Snapshot retention: 1 day. `min-input-files=2` override ensures small mart tables with 2–4 files still get compacted; `partial-progress.enabled=true` keeps a single file-group failure on large raw/staging tables from rolling back the whole rewrite. See `reference/iceberg-maintenance-procedures.md`.
 
 ### 15.8 30-day retention window
 

@@ -3,7 +3,8 @@ spark-core: Structured Streaming job for core enrichment and mart views.
 
 Reads:  atmosphere.staging.stg_{posts,likes,reposts}
 Writes: atmosphere.core.{core_posts, core_mentions, core_hashtags, core_engagement}
-Views:  atmosphere.mart.{mart_*, v_*}
+Views:  atmosphere.mart.mart_pipeline_health (only — other marts are materialized
+        as streaming queries in spark/transforms/marts.py)
 
 Stream 1: stg_posts → core_posts + core_mentions + core_hashtags (foreachBatch)
 Stream 2: stg_likes ∪ stg_reposts → core_engagement (direct write)
@@ -101,17 +102,11 @@ CREATE_CORE_TABLES = {
     """,
 }
 
-# --- Mart views: catalog view name → SQL file path (relative to SQL_DIR) ---
+# --- Unmaterialized mart views (the rest are streaming-materialized in marts.py) ---
+# pipeline_health stays as a view because it's already <4s warm and is metadata,
+# not data — materializing it would be circular (it monitors the streaming pipeline).
 MART_VIEWS = {
-    "atmosphere.mart.mart_events_per_second":   "mart/mart_events_per_second.sql",
-    "atmosphere.mart.mart_trending_hashtags":    "mart/mart_trending_hashtags.sql",
-    "atmosphere.mart.mart_engagement_velocity":  "mart/mart_engagement_velocity.sql",
-    "atmosphere.mart.mart_pipeline_health":      "mart/mart_pipeline_health.sql",
-    "atmosphere.mart.mart_sentiment_timeseries": "mart/mart_sentiment_timeseries.sql",
-    "atmosphere.mart.v_language_distribution":   "mart/v_language_distribution.sql",
-    "atmosphere.mart.v_top_posts":              "mart/v_top_posts.sql",
-    "atmosphere.mart.v_most_mentioned":         "mart/v_most_mentioned.sql",
-    "atmosphere.mart.v_content_breakdown":      "mart/v_content_breakdown.sql",
+    "atmosphere.mart.mart_pipeline_health": "mart/mart_pipeline_health.sql",
 }
 
 

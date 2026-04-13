@@ -35,7 +35,7 @@
 
 Atmosphere is a real-time streaming data platform that ingests the full Bluesky social network firehose, performs multilingual sentiment analysis, and surfaces live analytics through a public Grafana dashboard.
 
-The thesis of Atmosphere is **"a lot with a little."** Apache Spark serves as the unified engine for ingestion, stream processing, transformation, ML inference, and query serving. Apache Iceberg provides the storage format. Grafana provides the visualization layer. One platform, three technologies — Spark handles all of it.
+The thesis of Atmosphere is **"a lot with a little."** Apache Spark serves as the unified engine for ingestion, stream processing, transformation, and ML inference. Apache Iceberg provides the storage format. ClickHouse 26.1 reads the Iceberg tables through the Polaris REST catalog and exposes them to Grafana as a two-tier view layer (11 base mart views + 17 panel views). Four core technologies — Spark, Iceberg, ClickHouse, Grafana — share a single Polaris catalog.
 
 Two components distinguish Atmosphere from a conventional streaming pipeline:
 
@@ -49,10 +49,10 @@ Two components distinguish Atmosphere from a conventional streaming pipeline:
 ### 2.1 Goals
 
 - Ingest the full Bluesky Jetstream firehose (~240 events/sec, all collections) in real time via a custom PySpark WebSocket data source
-- Process events through a four-layer medallion architecture (raw → staging → core → mart) using chained Spark Structured Streaming queries
+- Process events through a three-layer Iceberg medallion (raw → staging → core) using chained Spark Structured Streaming queries
 - Perform multilingual sentiment analysis on all posts using a GPU-accelerated transformer model
-- Expose live analytics through a Grafana dashboard with 5-second refresh, accessible via a public URL
-- Demonstrate that a single platform (Spark) can serve as ingestion engine, stream processor, transformation layer, ML runtime, and query server simultaneously
+- Expose live analytics through a Grafana dashboard with 5-second refresh against a ClickHouse view layer over Iceberg
+- Demonstrate that a streaming engine (Spark) and an OLAP engine (ClickHouse) can share an Iceberg/Polaris metadata layer without a custom serving service
 - Provide a fully reproducible local environment via Docker Compose and a single `make up` command
 
 ### 2.2 Scope Boundaries
@@ -71,8 +71,8 @@ Two components distinguish Atmosphere from a conventional streaming pipeline:
 | Compute budget | ~24 GB allocated to the Docker stack, ~8 GB reserved for the host workstation |
 | Data source | Bluesky Jetstream public WebSocket — zero authentication, zero rate limits, 24-hour event TTL on server |
 | Runtime | Always-on operation — the pipeline runs continuously while the workstation remains usable |
-| Storage | Local only — RustFS (S3-compatible object storage) running in Docker |
-| Network | Outbound WebSocket to Jetstream public instances; inbound via Cloudflare Tunnel for public dashboard access |
+| Storage | Local only — SeaweedFS (S3-compatible object storage) running in Docker |
+| Network | Outbound WebSocket to Jetstream public instances; inbound public access via Cloudflare Tunnel deferred until post-ClickHouse migration |
 
 ---
 
@@ -88,42 +88,33 @@ flowchart TD
 
     subgraph Local Machine
         subgraph Spark Engine
-            SU[spark-unified\nIngest + Staging + Core + Sentiment\nGPU-accelerated]
-            QA[query-api\nREST API Serving]
+            SU[spark\nIngest + Staging + Core + Sentiment\nGPU-accelerated]
         end
 
         subgraph Storage
-            RS[RustFS\nS3-Compatible Storage]
+            RS[SeaweedFS\nS3-Compatible Storage]
             PL[Polaris\nIceberg REST Catalog]
             PG[PostgreSQL\nCatalog Backend]
         end
 
-        subgraph Frontend
+        subgraph Serving
+            CH[ClickHouse 26.1\nDataLakeCatalog over Polaris\n11 base + 17 panel views]
             GF[Grafana\nLive Dashboards]
-            CF[cloudflared\nCloudflare Tunnel]
         end
     end
 
-    subgraph Public Internet
-        PU[Public URL\natmosphere.domain.com]
-    end
-
-    JS -->|WebSocket| SI
-    SI -->|Iceberg writes| RS
-    SS -->|reads raw, writes staging| RS
-    SC -->|reads staging, writes core| RS
-    SM -->|reads core posts, writes sentiment| RS
-    QA -->|reads all layers| RS
-    SI & SS & SC & SM & QA <-->|catalog ops| PL
+    JS -->|WebSocket| SU
+    SU -->|Iceberg writes| RS
+    SU <-->|catalog ops| PL
+    CH <-->|catalog ops| PL
+    CH -->|Parquet reads + s3_cache| RS
     PL --> PG
-    GF -->|REST API via Infinity plugin| QA
-    GF --> CF
-    CF -->|HTTPS| PU
+    GF -->|grafana-clickhouse-datasource| CH
 ```
 
 ### 3.2 Data Flow
 
-All four streaming layers run in a single unified Spark process (`spark-unified`) sharing one SparkSession and JVM:
+All four streaming layers run in a single unified Spark process (`spark`) sharing one SparkSession and JVM:
 
 1. **Ingest layer** connects to the Bluesky Jetstream WebSocket via a custom Python DataSource V2 source. Raw JSON events are written to `atmosphere.raw.raw_events` in 5-second micro-batches.
 
@@ -133,53 +124,51 @@ All four streaming layers run in a single unified Spark process (`spark-unified`
 
 4. **Sentiment layer** reads `core_posts` and applies the XLM-RoBERTa sentiment model via `mapInPandas` with GPU acceleration. Results are written to `core_post_sentiment`.
 
-5. **query-api** exposes all Iceberg tables (raw through mart) as a REST API endpoint. Grafana connects via the Infinity datasource plugin and refreshes panels every 5 seconds.
-
-Additionally, `spark-unified` runs the mart layer as **10 independent streaming queries** (one per materialized mart) that read upstream Iceberg tables with a 1-minute tumbling event-time window and 15-minute watermark, and append pre-aggregated rows to `atmosphere.mart.*`. `mart_pipeline_health` is the only mart that remains a query-time Iceberg view (metadata, not data). Top-N aggregation happens at read time in the Query API — mart tables are append-only. See §5.5.
+5. **ClickHouse view layer** — after the streaming queries are running, `spark/serving/clickhouse_views.py` bootstraps the `atmosphere` ClickHouse database and creates **11 base mart views** (`mart_events_per_second`, `mart_engagement_velocity`, `mart_sentiment_timeseries`, `mart_trending_hashtags`, `mart_most_mentioned`, `mart_language_distribution`, `mart_content_breakdown`, `mart_embed_usage`, `mart_firehose_stats`, `mart_top_posts`, `mart_pipeline_health`) and **17 panel views** (one per Grafana panel) from `spark/serving/views/*.sql`. Base views read directly from `polaris_catalog.{raw,staging,core}.*`; panel views compose on the base views (or read upstream Iceberg directly when no base view fits). Every view ends with `SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1` so SeaweedFS bytes are cached on the ClickHouse node. There is no materialized mart Iceberg layer — all aggregation is computed live in ClickHouse. See §5.5.
 
 ```mermaid
 flowchart LR
-    WS[Jetstream\nWebSocket] --> SU[spark-unified]
+    WS[Jetstream\nWebSocket] --> SU[spark]
     SU --> RAW[(raw_events)]
     RAW --> SU
     SU --> STG[(stg_posts\nstg_likes\nstg_reposts\nstg_follows\nstg_blocks\nstg_profiles)]
     STG --> SU
     SU --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
     SU --> SENT[(core_post_sentiment)]
-    CORE & SENT --> MART[(mart_*\n5 materialized\n4 views)]
-    MART & CORE & STG & RAW --> QA[query-api]
-    QA --> GF[Grafana]
+    CORE & SENT --> CH[ClickHouse\n11 base mart views\n17 panel views]
+    CH --> GF[Grafana]
 ```
 
 ### 3.3 Technology Choices and Rationale
 
 | Component | Technology | Rationale |
 |---|---|---|
-| Streaming engine | Apache Spark 4.x (Structured Streaming) | Built-in Iceberg support in Spark 4.x. A single engine handles ingestion, transformation, ML inference, and serving — the core thesis of the project. |
+| Streaming engine | Apache Spark 4.x (Structured Streaming) | Built-in Iceberg support in Spark 4.x. A single engine handles ingestion, transformation, and ML inference. |
+| Query engine | ClickHouse 26.1 with `DataLakeCatalog` over Polaris | Purpose-built OLAP engine for low-latency dashboard reads. Native Iceberg catalog mount via REST avoids data duplication. Named filesystem cache (`s3_cache`) holds working-set Parquet bytes on the ClickHouse node. |
 | Execution mode | `local[*]` per container | Each Spark application runs in its own container using all available cores. Lightweight, memory-efficient, and sufficient for a single-firehose workload. |
 | Table format | Apache Iceberg | ACID transactions, schema evolution, partition evolution, and time travel. Native integration with Spark 4.x. |
-| Iceberg catalog | Apache Polaris (REST) | External REST catalog enables clean multi-application table metadata sharing across five Spark containers. Production-standard pattern. |
-| Object storage | RustFS | Apache 2.0-licensed, S3-API-compatible object storage. Drop-in replacement for MinIO with active maintenance. Used consistently across the portfolio. |
+| Iceberg catalog | Apache Polaris (REST) | External REST catalog enables Spark and ClickHouse to share Iceberg metadata cleanly — a production-standard pattern. |
+| Object storage | SeaweedFS | Apache 2.0-licensed, S3-API-compatible object storage. Drop-in replacement for MinIO with active maintenance. Used consistently across the portfolio. |
 | Sentiment model | cardiffnlp/twitter-xlm-roberta-base-sentiment | XLM-RoBERTa fine-tuned on ~198M tweets. Covers 100+ languages including Japanese and Korean — critical for Bluesky's multilingual user base. |
 | ML inference | HuggingFace Transformers + `mapInPandas` | Vectorized batch inference via Pandas UDFs. GPU-accelerated with NVIDIA container toolkit. |
-| Dashboard | Grafana | Industry-standard observability platform. Infinity datasource plugin connects to the query-api service via REST API. |
-| Public access | Cloudflare Tunnel | Secure outbound-only HTTPS tunnel from local machine to public URL. All compute stays local. |
+| Dashboard | Grafana + native `grafana-clickhouse-datasource` | Industry-standard observability platform. Native ClickHouse plugin gives full SQL access without an intermediary REST service. |
+| Public access | Cloudflare Tunnel (deferred) | Will be reinstated post-ClickHouse migration. |
 | Container orchestration | Docker Compose | Single `make up` command starts the full stack. |
 | Python tooling | uv + pyproject.toml | Modern, fast Python dependency management with lockfile support. |
 
 ### 3.4 Consolidated Responsibilities
 
-Spark serves seven distinct roles that are conventionally handled by separate tools:
+Spark serves six distinct roles that are conventionally handled by separate tools, with ClickHouse handling the seventh (query serving):
 
-| Role | How Spark Handles It |
+| Role | How It Is Handled |
 |---|---|
-| Message ingestion | Custom DataSource V2 reads directly from the WebSocket |
-| Stream processing | Structured Streaming with 5-second micro-batches |
-| Scheduling / orchestration | Each application manages its own cadence via `processingTime` triggers |
-| SQL transformation | Spark SQL executed as streaming queries within each application |
-| Unified batch + stream | A single streaming engine serves both real-time and analytical workloads |
-| Data quality | DataFrame assertions inline within streaming transformations |
-| Query serving | Query API (FastAPI + PySpark) exposes all tables via REST API |
+| Message ingestion | Spark — custom DataSource V2 reads directly from the WebSocket |
+| Stream processing | Spark — Structured Streaming with 5-second micro-batches |
+| Scheduling / orchestration | Spark — each query manages its own cadence via `processingTime` triggers |
+| SQL transformation | Spark SQL executed as streaming queries within the unified process |
+| Unified batch + stream | Spark — a single streaming engine serves both real-time and analytical workloads |
+| Data quality | Spark — DataFrame assertions inline within streaming transformations |
+| Query serving | ClickHouse — `DataLakeCatalog` engine over Polaris exposes Iceberg tables; cached SQL views serve Grafana |
 
 ---
 
@@ -319,10 +308,11 @@ Profile update events contain display name, description, avatar, banner, and pin
 
 | Layer | Namespace | Writer | Description |
 |---|---|---|---|
-| Raw | `atmosphere.raw` | spark-unified (ingest layer) | Verbatim JSON events. Append-only. Immutable after write. |
-| Staging | `atmosphere.staging` | spark-unified (staging layer) | Parsed, typed, and cleaned. One table per collection type. |
-| Core | `atmosphere.core` | spark-unified (core + sentiment layers) | Enriched entities. Extracted mentions, hashtags, sentiment scores. |
-| Mart | `atmosphere.mart` | spark-unified (core layer) | Dashboard-ready aggregates. Hot tables are materialized; cold analytics are served as views. |
+| Raw | `atmosphere.raw` | spark (ingest layer) | Verbatim JSON events. Append-only. Immutable after write. |
+| Staging | `atmosphere.staging` | spark (staging layer) | Parsed, typed, and cleaned. One table per collection type. |
+| Core | `atmosphere.core` | spark (core + sentiment layers) | Enriched entities. Extracted mentions, hashtags, sentiment scores. |
+
+Dashboard-ready aggregates live in the ClickHouse view layer (§5.5), not as Iceberg tables in a mart namespace.
 
 ### 5.2 Raw Layer
 
@@ -477,42 +467,55 @@ All staging tables share a common set of envelope columns derived from the raw e
 **Partitioning (all core tables):** `PARTITION BY days(event_time)`
 **Sort order:** `event_time ASC`
 
-### 5.5 Mart Layer
+### 5.5 ClickHouse View Layer
 
-The mart layer is **ten streaming Iceberg tables** plus one query-time view (`mart_pipeline_health`). Each materialized mart runs as its own Structured Streaming query inside `spark-unified`, reading an upstream Iceberg source, applying a 1-minute tumbling event-time window with a 15-minute watermark, and appending pre-aggregated rows. Dashboards read the mart tables directly; aggregation cost is O(buckets), not O(upstream rows). See `spark/transforms/marts.py` and `docs/mart-sizing-analysis.md`.
+There is no longer a materialized mart Iceberg layer. Aggregation runs live in ClickHouse 26.1, which mounts the Polaris REST catalog as a database (`polaris_catalog`) via the `DataLakeCatalog` engine and serves Grafana through a two-tier view layer in the `atmosphere` ClickHouse database. Bootstrap is performed by `spark/serving/clickhouse_views.py`, called from `spark/unified.py` after the streaming queries are running.
 
-**No write-time top-N.** Mart tables store every `(bucket, key)` pair and let the read SQL apply `ORDER BY ... LIMIT N`. This avoids streaming top-N brittleness and keeps mart tables append-only; storage cost is trivial (~16 MB stack-wide for 10 marts × 7 days).
+**Caching is mandatory.** Every view in `atmosphere.*` ends with:
 
-**Materialized tables:**
+```sql
+SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1
+```
 
-| Table | Source | Grouping Key | Description |
-|---|---|---|---|
-| `mart_events_per_second` | `raw.raw_events` | — | Pipeline throughput per 1-minute bucket. |
-| `mart_engagement_velocity` | `core.core_engagement` | `event_type` | Likes/reposts/follows per minute, grouped by event type. |
-| `mart_sentiment_timeseries` | `core.core_post_sentiment` | `sentiment_label` | Positive/negative/neutral counts per minute. |
-| `mart_trending_hashtags` | `core.core_hashtags` | `tag` | Tag counts per minute. Spike ratio computed at read time by `read_trending_hashtags.sql` with `{window}` parameter. |
-| `mart_most_mentioned` | `core.core_mentions` | `mentioned_did` | Mention counts per minute per target DID. |
-| `mart_language_distribution` | `core.core_posts` | `primary_lang` | Post counts per language per minute. Partitioned `days(bucket_min)` (24-hour retention). |
-| `mart_content_breakdown` | `core.core_posts` | `content_type` | Post counts by content type (original/reply/quote) per minute. |
-| `mart_embed_usage` | `core.core_posts` | `embed_type` | Post counts by embed type (images/external/record/video) per minute. |
-| `mart_firehose_stats` | `raw.raw_events` | `collection` | Per-collection event count + approx unique DIDs (HLL). Feeds the "Total Events" and "Active Users" stat panels. |
-| `mart_top_posts` | `core.core_posts ⨝ core.core_post_sentiment` | — | Stream-stream inner join materialized one row per post with text, language, content type, and sentiment scores. |
+The named filesystem cache `s3_cache` is configured at the storage-policy level on the ClickHouse node, but the `DataLakeCatalog` read path does not propagate profile-level cache settings — the `SETTINGS` clause must be attached at the query (or view) level for the cache to fill. This was verified empirically by inspecting `system.filesystem_cache` after view reads.
 
-**Query-time view:**
+**Tier 1: Base mart views** (11 views, file: `spark/serving/views/mart_*.sql`). Each base view applies a single aggregation against `polaris_catalog.{raw,staging,core}.*`:
 
-| View | Description |
-|---|---|
-| `mart_pipeline_health` | Self-monitoring metrics (events/sec, processing lag, last batch timestamp). Remains an Iceberg view because it is metadata, already <4s warm, and must reflect up-to-the-minute state without watermark delay. Registered by `core.py`. |
+| Base View | Source | Description |
+|---|---|---|
+| `mart_events_per_second` | `raw.raw_events` | Pipeline throughput per 1-minute bucket |
+| `mart_engagement_velocity` | `core.core_engagement` | Likes/reposts/follows per minute, grouped by event type |
+| `mart_sentiment_timeseries` | `core.core_post_sentiment` | Avg positive/negative/neutral per minute |
+| `mart_trending_hashtags` | `core.core_hashtags` | Tag counts per minute |
+| `mart_most_mentioned` | `core.core_mentions` | Mention counts per minute per target DID |
+| `mart_language_distribution` | `core.core_posts` | Post counts per language per minute |
+| `mart_content_breakdown` | `core.core_posts` | Post counts by content type per minute |
+| `mart_embed_usage` | `core.core_posts` | Post counts by embed type per minute |
+| `mart_firehose_stats` | `raw.raw_events` | Per-collection event count + approx unique DIDs |
+| `mart_top_posts` | `core.core_posts ⨝ core.core_post_sentiment` | Joined view — one row per post with text, language, sentiment |
+| `mart_pipeline_health` | `raw.raw_events` | Self-monitoring metrics: events/sec, processing lag, last event time |
 
-**Windowing and triggers:**
+**Tier 2: Panel views** (17 views, file: `spark/serving/views/panel_*.sql`). One per Grafana panel; reads `SELECT * FROM atmosphere.panel_<name>`:
 
-- Tumbling window: 1 minute (`bucket_min = window.start`).
-- Watermark: 15 minutes on event time.
-- Output mode: `append` — closed windows emit once the watermark passes.
-- Trigger: `processingTime="5 seconds"` (FR-10 alignment).
-- Write sort: `bucket_min DESC` (Iceberg `WRITE ORDERED BY`).
+| Panel View | Built From | Notes |
+|---|---|---|
+| `panel_sentiment_timeseries` | `core_post_sentiment` directly | 15-min window, avg per minute |
+| `panel_current_sentiment` | `core_post_sentiment` directly | 1-min window, single-row stat |
+| `panel_top_posts_positive` / `panel_top_posts_negative` | `mart_top_posts` | 30-min window, ORDER BY sentiment LIMIT 5 |
+| `panel_events_per_second_by_collection` | `mart_firehose_stats` | 15-min window, count/60 |
+| `panel_operations_breakdown` | `raw.raw_events` directly | 15-min window, GROUP BY operation |
+| `panel_active_users` / `panel_total_events` | `mart_firehose_stats` | 5-min sums |
+| `panel_language_distribution` | `mart_language_distribution` | top 10, 5-min window |
+| `panel_content_breakdown` / `panel_embed_usage` | `mart_content_breakdown` / `mart_embed_usage` | 5-min sums |
+| `panel_trending_hashtags` | `mart_trending_hashtags` | Spike-ratio CTE: current 5-min vs prior 25-min baseline |
+| `panel_likes_per_second` / `panel_reposts_per_second` | `mart_engagement_velocity` (filtered) | count/60 |
+| `panel_follows_per_second` | `staging.stg_follows` directly | filter `operation='create'` |
+| `panel_most_mentioned` | `mart_most_mentioned` | top 20, 5-min window |
+| `panel_pipeline_health` | `mart_pipeline_health` | passthrough — used by 3 stat panels |
 
-**Mart DDL nullability:** Mart columns are declared without `NOT NULL` because `window.start` and grouping columns read from upstream Iceberg tables are structurally `optional` at the Spark schema level. Iceberg's schema compatibility check rejects writing an optional column into a required one even when the rows are never null in practice. The streaming SQL (not the DDL) is the source of truth for non-null semantics.
+ClickHouse inlines view bodies at query plan time, so layering does not double-execute base aggregations. The split exists so dashboard SQL stays out of the dashboard JSON and so per-panel windowing/limiting can evolve without touching the base views.
+
+**Maintenance:** Because there is no materialized mart Iceberg layer, the only Iceberg tables under maintenance are the 12 raw/staging/core tables. `spark/analysis/maintenance.py` retains its compaction logic for those.
 
 ### 5.6 Partitioning and Sort Order Strategy
 
@@ -521,7 +524,6 @@ The mart layer is **ten streaming Iceberg tables** plus one query-time view (`ma
 | Raw | `days(ingested_at), collection` | `ingested_at` | Day + collection pruning. Collection as secondary partition skips irrelevant event types on filtered reads. |
 | Staging | `days(event_time)` | `event_time` | Daily partitions. Collection-level separation is handled by having one table per collection. |
 | Core | `days(event_time)` | `event_time` | Consistent with staging. Time-range queries are the primary access pattern. |
-| Mart (materialized) | `hours(bucket_min)` for time-series marts; `days(bucket_min)` for `mart_language_distribution`; unpartitioned for small key-lookup marts (`trending_hashtags`, `most_mentioned`, `content_breakdown`, `embed_usage`) | `bucket_min DESC` | Time-series marts partition by hour so dashboard time-range scans touch 1 manifest per hour. Small key-lookup marts stay unpartitioned — they are tiny enough (≤ a few MB) that partitioning adds manifest overhead without pruning benefit. |
 
 Data retention is set to **30 days** across all layers. Expired partitions are dropped by a maintenance routine.
 
@@ -533,14 +535,13 @@ Data retention is set to **30 days** across all layers. Expired partitions are d
 
 | Container | Image | Purpose | Memory | Ports |
 |---|---|---|---|---|
-| `init` | Custom Python | Creates RustFS buckets, Polaris warehouse, and Iceberg namespaces. Exits after completion. | 512 MB | — |
-| `rustfs` | `rustfs/rustfs` | S3-compatible object storage for all Iceberg data and metadata files. | 3 GB | 9000, 9001 (console) |
+| `init` | Custom Python | Creates SeaweedFS buckets, Polaris warehouse, and Iceberg namespaces. Exits after completion. | 512 MB | — |
+| `seaweedfs` | `chrislusf/seaweedfs:4.19` (thin wrapper) | S3-compatible object storage for all Iceberg data and metadata files. | 1 GB | 9000 (S3, host→8333), 9333 (master) |
 | `polaris` | `apache/polaris` | Iceberg REST catalog. Serves table metadata to Spark processes. | 1 GB | 8181 |
 | `postgres` | `postgres:16` | Backing store for the Polaris catalog. | 1 GB | 5432 |
-| `spark-unified` | Custom (Spark 4.x + CUDA + HuggingFace) | Runs all 4 streaming layers (ingest, staging, core, sentiment) in one JVM. GPU-accelerated sentiment inference. | 14 GB | 4040 (Spark UI) |
-| `query-api` | Custom (Spark 4.x) | FastAPI + PySpark REST API exposing all Iceberg tables via HTTP/JSON. | 2 GB | 8000 (REST API) |
-| `grafana` | `grafana/grafana-oss` | Dashboard rendering. Connects to query-api via Infinity datasource plugin. | 512 MB | 3000 |
-| `cloudflared` | `cloudflare/cloudflared` | Cloudflare Tunnel agent. Bridges local Grafana to a public HTTPS URL. | 256 MB | — |
+| `spark` | Custom (Spark 4.x + CUDA + HuggingFace) | Runs all 4 streaming layers (ingest, staging, core, sentiment) in one JVM and bootstraps the ClickHouse view layer after start. GPU-accelerated sentiment inference. | 14 GB | 4040 (Spark UI) |
+| `clickhouse` | Custom (`clickhouse/clickhouse-server:26.1-alpine` + baked config) | Query serving. `DataLakeCatalog` database `polaris_catalog` over Polaris; `atmosphere` database holds 11 base mart views + 17 panel views, all cached against `s3_cache`. | 2 GB | 8123 (HTTP), 9000 (native) |
+| `grafana` | Custom (`grafana/grafana-oss` + `grafana-clickhouse-datasource`) | Dashboard rendering. Connects to ClickHouse via the native datasource plugin. | 512 MB | 3000 |
 
 **Total memory allocation: ~22 GB** (within 24 GB budget, leaving ~1.7 GB headroom for JVM overhead and OS caches).
 
@@ -549,42 +550,46 @@ Data retention is set to **30 days** across all layers. Expired partitions are d
 ```mermaid
 flowchart TD
     PG[postgres] --> PL[polaris]
-    RS[rustfs] --> INIT[init]
+    RS[seaweedfs] --> INIT[init]
     PL --> INIT
-    INIT --> SU[spark-unified]
-    INIT --> QA[query-api]
-    QA --> GF[grafana]
-    GF --> CF[cloudflared]
+    CH[clickhouse] --> INIT
+    INIT --> SU[spark]
+    CH --> GF[grafana]
 ```
 
-Containers use Docker Compose `depends_on` with health checks to enforce ordering. The `init` container exits after setup; all other containers run continuously with `restart: unless-stopped`.
+Containers use Docker Compose `depends_on` with health checks to enforce ordering. `init` waits for SeaweedFS, Polaris, and ClickHouse to be healthy, then runs its 7-step bootstrap (buckets → Polaris catalog → namespaces → ClickHouse reader principal + RBAC → `polaris_catalog` database) and exits. `spark` depends on `init` completing. `grafana` depends only on `clickhouse` being healthy. All long-running containers run with `restart: unless-stopped`.
 
 ### 6.3 Docker Networking
 
 | Network | Purpose | Members |
 |---|---|---|
-| `atmosphere-data` | Internal data plane. All storage and compute traffic. | rustfs, polaris, postgres, init, spark-unified, query-api |
-| `atmosphere-frontend` | Serving plane. Dashboard and public access. | query-api, grafana, cloudflared |
+| `atmosphere-data` | Internal data plane. All storage and compute traffic. | seaweedfs, polaris, postgres, init, spark, clickhouse |
+| `atmosphere-frontend` | Serving plane. Dashboard access. | clickhouse, grafana |
 
-`query-api` is connected to both networks — it reads from storage on the data network and serves queries to Grafana on the frontend network.
+`clickhouse` is dual-homed on both networks — it reads Iceberg data from SeaweedFS/Polaris on the data network and serves Grafana on the frontend network.
 
 ### 6.4 Init Service
 
-The init container performs three setup tasks and exits:
+The init container runs a 7-step idempotent bootstrap and exits:
 
-1. **RustFS bucket creation** — creates the `warehouse` bucket for Iceberg data files.
-2. **Polaris warehouse creation** — registers the `atmosphere` warehouse in the Polaris REST catalog.
-3. **Iceberg namespace creation** — creates four namespaces: `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`, `atmosphere.mart`.
+1. **SeaweedFS wait + bucket** — waits for SeaweedFS to be healthy and creates the `warehouse` bucket for Iceberg data files.
+2. **Polaris wait** — polls `/api/management/v1/catalogs` until Polaris is healthy.
+3. **Polaris catalog** — creates the `atmosphere` catalog with `polaris.config.drop-with-purge.enabled=true`.
+4. **Iceberg namespaces** — creates three namespaces: `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`.
+5. **ClickHouse reader principal + RBAC** — provisions the Polaris principal `clickhouse`, the principal role `clickhouse_reader`, and the catalog role `atmosphere_reader` with read grants at catalog scope. Polaris generates the client secret server-side on first create; it is persisted to the `polaris-creds` named volume (`/var/polaris-creds/clickhouse.json`) and reused on restart.
+6. **ClickHouse `polaris_catalog` database** — runs `CREATE DATABASE polaris_catalog ENGINE = DataLakeCatalog(...)` against ClickHouse, wiring the stored client secret in.
 
-Each Spark application creates its own tables on first write using `CREATE TABLE IF NOT EXISTS` semantics. The init service handles only infrastructure-level setup.
+After init exits, `spark` starts — it creates Iceberg tables via `CREATE TABLE IF NOT EXISTS` on first write, and once streaming queries are running it calls `spark/serving/clickhouse_views.py` to create the `atmosphere` ClickHouse database and the 11 base mart + 17 panel views.
 
 ### 6.5 Volume Mounts
 
 | Volume | Container(s) | Path | Purpose |
 |---|---|---|---|
-| `rustfs-data` | rustfs | `/data` | Persistent object storage |
+| `seaweedfs-data` | seaweedfs | `/data` | Persistent object storage |
 | `postgres-data` | postgres | `/var/lib/postgresql/data` | Catalog metadata |
-| `spark-checkpoints` | spark-unified | `/opt/spark/checkpoints` | Streaming checkpoint state (subdirs: ingest-raw, staging, core/posts, core/engagement, sentiment) |
+| `polaris-creds` | init, clickhouse | `/var/polaris-creds` | Server-generated Polaris client secret for the ClickHouse reader principal |
+| `clickhouse-data` | clickhouse | `/var/lib/clickhouse` | ClickHouse state + filesystem cache for `s3_cache` |
+| `spark-checkpoints` | spark | `/opt/spark/checkpoints` | Streaming checkpoint state (subdirs: ingest-raw, staging, core/posts, core/engagement, sentiment) |
 | `grafana-data` | grafana | `/var/lib/grafana` | Dashboard state and plugin cache |
 
 ---
@@ -598,7 +603,7 @@ Atmosphere implements a custom PySpark Structured Streaming data source that rea
 This design choice serves two purposes:
 
 1. **Architectural simplicity** — a single-source, single-consumer pipeline benefits from the fewest possible components. Direct WebSocket ingestion keeps the architecture to Spark, Iceberg, and Grafana.
-2. **Portfolio signal** — implementing a DataSource V2 provider demonstrates deep knowledge of Spark internals, specifically the streaming source contract, offset management, and micro-batch lifecycle.
+2. **First-class streaming contract** — implementing a DataSource V2 provider integrates the WebSocket into Spark's streaming source contract: offset tracking, commit semantics, and micro-batch lifecycle are handled by the engine rather than bolted on alongside it.
 
 ### 7.2 Python DataSource V2 API
 
@@ -674,7 +679,7 @@ Bluesky's user base is multilingual — Japanese constitutes approximately 26% o
 
 ### 8.2 Inference Pipeline
 
-The sentiment layer (within spark-unified) runs a Spark Structured Streaming query that:
+The sentiment layer (within spark) runs a Spark Structured Streaming query that:
 
 1. Reads `atmosphere.core.core_posts` as a streaming Iceberg source.
 2. Applies the sentiment model via `mapInPandas`, a Pandas UDF that processes batches of rows as Pandas DataFrames.
@@ -743,83 +748,54 @@ The three probability scores sum to 1.0 for each post. The `sentiment_label` is 
 
 ## 9. Serving and Interfaces
 
-### 9.1 Query API
+### 9.1 ClickHouse
 
-The `query-api` container runs a custom FastAPI application backed by PySpark in `local[*]` mode. It exposes all Iceberg tables across all four namespaces as queryable resources via a REST API that returns JSON.
+The `clickhouse` container runs `clickhouse/clickhouse-server:26.1-alpine` with a thin wrapper image (`docker/clickhouse/Dockerfile`) that bakes `config.d/` and `users.d/` into the image at build time. Two users are provisioned:
+
+| User | Profile | Purpose |
+|---|---|---|
+| `atmosphere_admin` | `default` with DDL | One-shot use by `spark/serving/clickhouse_views.py` to create the `atmosphere` database and views. Network-restricted. |
+| `atmosphere_reader` | `readonly` | The only user Grafana logs in as. Limited to `SELECT` on `atmosphere.*` and `polaris_catalog.*`. |
+
+The `polaris_catalog` database is created by the init container on first boot via a `CREATE DATABASE ... ENGINE = DataLakeCatalog(...)` statement that points at Polaris and carries the server-generated client secret for the `clickhouse` Polaris principal. The `atmosphere` database is created by spark on startup, along with the 11 base mart + 17 panel views from `spark/serving/views/`.
+
+The named filesystem cache `s3_cache` is configured at the storage-policy level and backed by a sub-path of the `clickhouse-data` volume. Every view must end with `SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1` for the cache to fill — the `DataLakeCatalog` read path does not inherit profile-level cache settings.
 
 | Property | Value |
 |---|---|
-| Protocol | HTTP/REST (JSON) |
-| Port | 8000 |
-| Framework | FastAPI + PySpark |
-| Authentication | None (local network only) |
-| Catalog | Polaris REST catalog (`atmosphere`) |
-| Health check | HTTP GET to `/health` |
-| Concurrent queries | Limited by `local[*]` parallelism — sufficient for a single Grafana instance |
-
-**Endpoints:**
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/health` | GET | Health check — returns service status |
-| `/api/marts` | GET | Lists available mart tables and views |
-| `/api/mart/{name}` | GET | Returns data from a named mart table or view |
-| `/api/sql` | POST | Executes an arbitrary SQL query against Iceberg tables |
+| Image | `clickhouse/clickhouse-server:26.1-alpine` (custom wrapper) |
+| HTTP port | 8123 |
+| Native port | 9000 |
+| Health check | `wget -qO- http://127.0.0.1:8123/ping` |
+| Memory limit | 2 GB |
+| Volume | `clickhouse-data` (state + filesystem cache), `polaris-creds` (ro) |
 
 ### 9.2 Grafana Connection
 
-Grafana connects to the query-api service using the **Infinity datasource plugin** (`yesoreyeram-infinity-datasource`), which issues HTTP requests and parses JSON responses.
-
-**Data source configuration:**
+Grafana connects to ClickHouse via the native **`grafana-clickhouse-datasource`** plugin (v4.14.0), installed at image build time from `grafana/Dockerfile`. Datasource provisioning lives at `grafana/provisioning/datasources/clickhouse.yml`:
 
 | Setting | Value |
 |---|---|
-| Plugin | Infinity (`yesoreyeram-infinity-datasource`) |
-| Base URL | `http://query-api:8000` |
-| Auth | Anonymous |
+| Plugin | `grafana-clickhouse-datasource` (native) |
+| Host | `clickhouse` |
+| Port | 8123 (HTTP) |
+| Default database | `atmosphere` |
+| User | `${CLICKHOUSE_READER_USER}` (`atmosphere_reader`) |
+| UID | `clickhouse-atmosphere` |
 
-All dashboard panels issue SQL queries against Iceberg tables via this connection. Panels refresh every 5 seconds, aligned with the upstream micro-batch trigger interval.
+The provisioning file includes a `deleteDatasources` block that evicts any stale `Atmosphere` / `infinity-atmosphere` entries from the persistent `grafana-data` SQLite on startup. This matters during migration because old datasource rows survive image rebuilds.
 
-### 9.3 Cloudflare Tunnel
+Every dashboard panel query is simply:
 
-The `cloudflared` container establishes an outbound-only HTTPS tunnel to the Cloudflare network, making the local Grafana instance accessible at a public URL.
-
-| Property | Value |
-|---|---|
-| Tunnel type | Named tunnel (persistent) |
-| Protocol | QUIC (with HTTP/2 fallback) |
-| Origin service | `http://grafana:3000` |
-| Public hostname | Configured via Cloudflare dashboard (e.g., `atmosphere.yourdomain.com`) |
-| Authentication | Cloudflare Access (optional — can restrict to specific emails or allow public) |
-
-**Requirements:**
-- A registered domain (~$10/year) with DNS managed by Cloudflare (free plan)
-- A Cloudflare Tunnel token (generated via `cloudflared tunnel create`)
-- The token is provided to the container via the `TUNNEL_TOKEN` environment variable
-
-### 9.4 Public URL Architecture
-
-```mermaid
-flowchart LR
-    subgraph Local Machine
-        GF[Grafana :3000]
-        CF[cloudflared]
-    end
-
-    subgraph Cloudflare Edge
-        CE[Cloudflare\nEdge Network]
-    end
-
-    subgraph Visitor
-        BR[Browser]
-    end
-
-    GF --> CF
-    CF -->|QUIC tunnel\noutbound only| CE
-    BR -->|HTTPS| CE
+```sql
+SELECT * FROM atmosphere.panel_<name>
 ```
 
-All data processing remains local. Only rendered dashboard HTML/JSON travels through the tunnel.
+All SQL lives in `spark/serving/views/`, not in the dashboard JSON. Panels refresh every 5 seconds, aligned with the upstream micro-batch trigger.
+
+### 9.3 Cloudflare Tunnel (Deferred)
+
+The public-URL path via Cloudflare Tunnel is temporarily removed during the ClickHouse migration. The `cloudflared` container is absent from `docker-compose.yml`. Reinstating it is planned after CH-08/CH-09; the target architecture is the same outbound-only QUIC tunnel from a local `cloudflared` container to the Cloudflare edge, with Grafana as the origin service.
 
 ---
 
@@ -829,60 +805,61 @@ All data processing remains local. Only rendered dashboard HTML/JSON travels thr
 
 The Grafana dashboard is organized into five horizontal rows, each targeting a distinct analytical domain. All panels share a common time range selector and auto-refresh at 5-second intervals.
 
+Every panel target is `SELECT * FROM atmosphere.panel_<name>`; the SQL lives in `spark/serving/views/panel_*.sql`.
+
 ### 10.2 Row 1: Sentiment Live Feed
 
-| Panel | Type | Query Source |
+| Panel | Type | Panel View |
 |---|---|---|
-| Rolling Sentiment Score | Time series | `mart_sentiment_timeseries` — positive/negative/neutral averages over 1-minute windows |
-| Current Sentiment Gauge | Gauge | `mart_sentiment_timeseries` — latest 5-second window average |
-| Top 5 Most Positive Posts | Table | `mart_top_posts` view — ORDER BY sentiment_positive DESC LIMIT 5 |
-| Top 5 Most Negative Posts | Table | `mart_top_posts` view — ORDER BY sentiment_negative DESC LIMIT 5 |
+| Rolling Sentiment Score | Time series | `panel_sentiment_timeseries` |
+| Current Sentiment Gauge | Gauge | `panel_current_sentiment` |
+| Top 5 Most Positive Posts | Table | `panel_top_posts_positive` |
+| Top 5 Most Negative Posts | Table | `panel_top_posts_negative` |
 
 ### 10.3 Row 2: Firehose Activity
 
-| Panel | Type | Query Source |
+| Panel | Type | Panel View |
 |---|---|---|
-| Events/sec by Collection | Stacked area chart | `mart_events_per_second` — time series grouped by collection |
-| Operations Breakdown | Time series | `mart_events_per_second` — create/update/delete over time |
-| Unique Users (5-min window) | Stat | `mart_events_per_second` — distinct DID count |
-| Total Event Counter | Stat | `mart_events_per_second` — cumulative sum |
+| Events/sec by Collection | Stacked area chart | `panel_events_per_second_by_collection` |
+| Operations Breakdown | Time series | `panel_operations_breakdown` |
+| Unique Users (5-min window) | Stat | `panel_active_users` |
+| Total Event Counter | Stat | `panel_total_events` |
 
 ### 10.4 Row 3: Language & Content
 
-| Panel | Type | Query Source |
+| Panel | Type | Panel View |
 |---|---|---|
-| Language Distribution | Pie chart | `mart_language_distribution` view — top 10 languages + "other" |
-| Post Type Ratio | Bar chart | `mart_content_breakdown` view — original vs. reply over time |
-| Embed Usage | Bar chart | `mart_content_breakdown` view — text-only vs. images vs. links vs. quotes vs. video |
-| Trending Hashtags | Table | `mart_trending_hashtags` — top-N with current count, baseline count, spike ratio |
+| Language Distribution | Pie chart | `panel_language_distribution` |
+| Post Type Ratio | Bar chart | `panel_content_breakdown` |
+| Embed Usage | Bar chart | `panel_embed_usage` |
+| Trending Hashtags | Table | `panel_trending_hashtags` |
 
 ### 10.5 Row 4: Engagement Velocity
 
-| Panel | Type | Query Source |
+| Panel | Type | Panel View |
 |---|---|---|
-| Likes per Second | Time series | `mart_engagement_velocity` — likes/sec over rolling windows |
-| Reposts per Second | Time series | `mart_engagement_velocity` — reposts/sec over rolling windows |
-| Follow/Unfollow Rate | Time series | `mart_engagement_velocity` — net follow rate |
-| Most Mentioned Accounts | Table | `mart_most_mentioned` view — top 20 DIDs by mention count |
+| Likes per Second | Time series | `panel_likes_per_second` |
+| Reposts per Second | Time series | `panel_reposts_per_second` |
+| Follow Rate | Time series | `panel_follows_per_second` |
+| Most Mentioned Accounts | Table | `panel_most_mentioned` |
 
 ### 10.6 Row 5: Pipeline Health
 
-| Panel | Type | Query Source |
+| Panel | Type | Panel View |
 |---|---|---|
-| Events Ingested/sec | Time series | `mart_pipeline_health` — ingestion throughput |
-| Processing Lag | Time series | `mart_pipeline_health` — `current_time - max(event_time)` per container |
-| Last Batch Timestamp | Table | `mart_pipeline_health` — per-container last successful batch time |
-| Memory/CPU (if instrumented) | Time series | Docker metrics (optional) |
+| Events Ingested/sec | Stat | `panel_pipeline_health` |
+| Processing Lag | Stat | `panel_pipeline_health` |
+| Last Event Ingested | Stat | `panel_pipeline_health` |
 
 ### 10.7 Provisioning
 
 All dashboard configuration is committed to the repository as code:
 
-- `grafana/provisioning/datasources/infinity.yml` — auto-configures the Infinity data source pointing to `http://query-api:8000`
+- `grafana/provisioning/datasources/clickhouse.yml` — auto-configures the ClickHouse datasource (UID `clickhouse-atmosphere`) with env-var templated reader credentials and a `deleteDatasources` block for stale entries
 - `grafana/provisioning/dashboards/dashboard.yml` — dashboard provisioning configuration
-- `grafana/dashboards/atmosphere.json` — complete dashboard definition (panels, queries, layout)
+- `grafana/dashboards/atmosphere.json` — complete dashboard definition; every panel target is `SELECT * FROM atmosphere.panel_*`
 
-The dashboard is fully functional on first `docker compose up`.
+The dashboard is fully functional on first `docker compose up` once spark has finished bootstrapping the ClickHouse view layer.
 
 ---
 
@@ -916,15 +893,15 @@ Health checks are defined for critical services:
 
 | Container | Health Check |
 |---|---|
-| rustfs | HTTP GET to health endpoint |
+| seaweedfs | HTTP GET to master `/cluster/status` |
 | polaris | HTTP GET to `/api/v1/config` |
 | postgres | `pg_isready` |
-| query-api | HTTP GET to `/health` on port 8000 |
+| clickhouse | `wget -qO- http://127.0.0.1:8123/ping` |
 | grafana | HTTP GET to `/api/health` |
 
 ### 11.4 Stale Data Handling
 
-If the spark-unified process stops or a streaming query falls behind, Grafana continues to display the last known data. Dashboard panels show stale timestamps rather than empty panels. The Pipeline Health row (§10.6) surfaces lag metrics so the operator can identify which layer is behind.
+If the spark process stops or a streaming query falls behind, Grafana continues to display the last known data. Dashboard panels show stale timestamps rather than empty panels. The Pipeline Health row (§10.6) surfaces lag metrics so the operator can identify which layer is behind.
 
 ### 11.5 GPU Fallback
 
@@ -951,63 +928,50 @@ atmosphere/
 ├── .gitignore
 │
 ├── spark/
-│   ├── Dockerfile                         # Base Spark 4.x image (query-api)
-│   ├── Dockerfile.sentiment               # Unified image: CUDA + HuggingFace + model weights (spark-unified)
+│   ├── Dockerfile.sentiment               # Unified image: Spark 4.x + CUDA + HuggingFace + model weights
 │   ├── conf/
-│   │   └── spark-defaults.conf            # Iceberg catalog, S3/RustFS, checkpointing config
+│   │   └── spark-defaults.conf            # Iceberg catalog, S3/SeaweedFS, checkpointing config
 │   ├── sources/
 │   │   └── jetstream_source.py            # Custom WebSocket DataSource V2 implementation
-│   ├── unified.py                         # Consolidated entrypoint (all 5 streaming queries)
+│   ├── unified.py                         # Consolidated entrypoint (5 streaming queries + CH view bootstrap)
 │   ├── ingestion/
 │   │   └── ingest_raw.py                  # Ingest layer: WebSocket → raw_events
 │   ├── transforms/
 │   │   ├── staging.py                     # Staging layer: raw → stg_* tables
-│   │   ├── core.py                        # Core layer: stg → core + mart tables
+│   │   ├── core.py                        # Core layer: stg → core_* tables
 │   │   ├── sentiment.py                   # Sentiment layer: core_posts → core_post_sentiment
 │   │   └── sql/
 │   │       ├── staging/                   # SQL files for staging transforms
-│   │       ├── core/                      # SQL files for core transforms
-│   │       └── mart/                      # SQL files for mart materializations
+│   │       └── core/                      # SQL files for core transforms
 │   └── serving/
-│       └── query_api.py                   # query-api FastAPI + PySpark service
+│       ├── clickhouse_views.py            # Bootstrap: creates atmosphere DB + 28 views
+│       └── views/
+│           ├── mart_*.sql                 # 11 base mart views over polaris_catalog.{raw,staging,core}
+│           └── panel_*.sql                # 17 panel views — one per Grafana panel
+│
+├── docker/
+│   ├── clickhouse/
+│   │   ├── Dockerfile                     # Thin wrapper over clickhouse-server:26.1-alpine
+│   │   ├── config.d/                      # Storage policy, filesystem cache, network binds
+│   │   └── users.d/                       # atmosphere_reader + atmosphere_admin
+│   └── seaweedfs/
+│       ├── Dockerfile                     # Thin wrapper; envsubsts s3.json at startup
+│       └── s3.json.template
 │
 ├── infra/
-│   ├── init/
-│   │   ├── setup.py                       # Create RustFS buckets + Polaris warehouse + namespaces
-│   │   └── Dockerfile                     # Python image with boto3 + requests
-│   └── cloudflare/
-│       └── config.yml                     # Cloudflare Tunnel ingress rules
+│   └── init/
+│       ├── setup.py                       # 7-step bootstrap (seaweedfs, polaris, CH reader principal + polaris_catalog)
+│       └── Dockerfile                     # Python image with boto3 + requests
 │
 ├── grafana/
+│   ├── Dockerfile                         # grafana-oss + grafana-clickhouse-datasource plugin
 │   ├── provisioning/
 │   │   ├── datasources/
-│   │   │   └── infinity.yml                # Infinity data source → query-api
+│   │   │   └── clickhouse.yml              # ClickHouse datasource + deleteDatasources for stale entries
 │   │   └── dashboards/
 │   │       └── dashboard.yml              # Dashboard provisioning config
 │   └── dashboards/
-│       └── atmosphere.json                # Main dashboard definition
-│
-├── reference/                             # Jetstream docs, lexicon schemas, sample data
-│   ├── jetstream-readme.md
-│   ├── jetstream-models.go
-│   ├── jetstream-main.go
-│   ├── jetstream-client-example.go
-│   ├── jetstream-raw-sample.jsonl
-│   ├── jetstream-grafana-dashboard.json
-│   ├── jetstream-dockerfile
-│   ├── jetstream-docker-compose.yaml
-│   ├── jetstream-makefile
-│   ├── jetstream-go.mod
-│   ├── lexicon-feed-post.json
-│   ├── lexicon-feed-like.json
-│   ├── lexicon-feed-repost.json
-│   ├── lexicon-graph-follow.json
-│   ├── lexicon-graph-block.json
-│   ├── lexicon-feed-defs.json
-│   ├── lexicon-richtext-facet.json
-│   ├── lexicon-embed-images.json
-│   ├── lexicon-embed-external.json
-│   └── lexicon-embed-record.json
+│       └── atmosphere.json                # Main dashboard definition (all panels SELECT * FROM atmosphere.panel_*)
 │
 └── docs/
     └── architecture.md                    # Extended architecture documentation + Mermaid source
@@ -1021,7 +985,7 @@ Formal test suites and data quality frameworks are deferred to a post-MVP phase.
 
 ### 13.1 Smoke Tests
 
-- **Ingestion health:** Verify `raw_events` row count increases steadily by querying via the query-api service: `SELECT COUNT(*) FROM atmosphere.raw.raw_events WHERE ingested_at > current_timestamp - INTERVAL 1 MINUTE`.
+- **Ingestion health:** Verify `raw_events` row count increases steadily by querying via ClickHouse: `SELECT count() FROM polaris_catalog.\`raw.raw_events\` WHERE ingested_at > now() - INTERVAL 1 MINUTE`.
 - **Staging completeness:** Verify all six staging tables receive data: `SELECT 'stg_posts' AS tbl, COUNT(*) FROM atmosphere.staging.stg_posts UNION ALL ...`.
 - **Sentiment coverage:** Verify `core_post_sentiment` rows align with `core_posts`: `SELECT COUNT(*) FROM atmosphere.core.core_post_sentiment WHERE event_time > current_timestamp - INTERVAL 5 MINUTES`.
 
@@ -1059,37 +1023,9 @@ This executes `docker compose up -d` with the appropriate profiles and environme
 
 On first run, the `init` container creates the necessary infrastructure (buckets, catalog, namespaces), then exits. Subsequent `make up` invocations skip initialization (idempotent checks).
 
-### 14.2 Cloudflare Tunnel Setup
+### 14.2 Cloudflare Tunnel Setup (Deferred)
 
-**Prerequisites:**
-1. A registered domain with DNS managed by Cloudflare (free plan).
-2. A Cloudflare Tunnel created via `cloudflared tunnel create atmosphere`.
-3. The tunnel token stored in `.env` as `TUNNEL_TOKEN`.
-4. A DNS CNAME record pointing `atmosphere.yourdomain.com` to the tunnel ID.
-
-**Container configuration:**
-
-```yaml
-cloudflared:
-  image: cloudflare/cloudflared:latest
-  command: tunnel --no-autoupdate run
-  environment:
-    - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-  networks:
-    - atmosphere-frontend
-  depends_on:
-    grafana:
-      condition: service_healthy
-  restart: unless-stopped
-```
-
-The tunnel ingress routes all traffic to the local Grafana instance at `http://grafana:3000`.
-
-### 14.3 Grafana Cloud Alternative
-
-Grafana Cloud's free tier (10,000 series, 50 GB logs) is a potential alternative to self-hosting. The Infinity datasource plugin would connect to the query-api service via the Cloudflare Tunnel — all compute stays local, and Grafana Cloud handles rendering and public access.
-
-This option is documented for future investigation. The initial deployment uses self-hosted Grafana with Cloudflare Tunnel.
+Cloudflare Tunnel is deferred until after the ClickHouse migration stabilizes. The target architecture remains a local `cloudflared` container with Grafana as the origin service, reinstated as a standalone PR once CH-08/CH-09 land.
 
 ---
 
@@ -1105,7 +1041,7 @@ The DataSource V2 API integrates natively with Spark's offset and checkpoint mac
 
 ### 15.3 Unified streaming process with separate query serving
 
-The four streaming layers (ingest, staging, core, sentiment) run in a single `spark-unified` container sharing one SparkSession and JVM. A separate `query-api` container provides REST API access to all Iceberg tables for Grafana. This separation keeps the streaming workload isolated from query serving while minimizing container count and memory overhead.
+The four streaming layers (ingest, staging, core, sentiment) run in a single `spark` container sharing one SparkSession and JVM. Query serving lives in a dedicated `clickhouse` container using the `DataLakeCatalog` engine to read the same Iceberg tables through Polaris. This separation keeps the streaming workload isolated from dashboard reads while letting both engines share a single source of truth via the REST catalog.
 
 ### 15.4 Adaptive GPU/CPU inference
 
@@ -1117,15 +1053,22 @@ The XLM-RoBERTa model runs on GPU when available (`device=0`) and adapts to CPU 
 
 ### 15.6 Centralized REST catalog (Polaris)
 
-The spark-unified process and query-api service read and write table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-process coordination. Both processes share a consistent view of table state.
+Spark and ClickHouse read table metadata concurrently. The Polaris REST catalog serializes all metadata operations through a single service, providing clean multi-engine coordination. Both engines share a consistent view of table state. ClickHouse authenticates as a dedicated reader principal (`clickhouse`) provisioned by the init container; the server-generated client secret is persisted to the `polaris-creds` named volume and reused across restarts.
 
-### 15.7 Fully materialized mart layer
+### 15.7 ClickHouse view layer over Iceberg (no materialized marts)
 
-All 10 analytics marts are materialized as streaming Iceberg tables with 1-minute tumbling windows and 15-minute watermarks. This replaces the earlier hybrid design (5 materialized + 4 views) after the pre-materialization baseline in `docs/mart-sizing-analysis.md` showed every view-based mart except `pipeline_health` exceeded the <5s dashboard-read SLA (warm latencies 16–22s, cold 20–88s). `pipeline_health` remains a query-time view because it is already <4s warm and must reflect up-to-the-minute state without watermark delay. Top-N aggregation (e.g. `ORDER BY count DESC LIMIT 20` for trending hashtags) is applied at read time in the Query API rather than at write time, which avoids streaming top-N brittleness and keeps mart tables append-only. Storage cost is trivial (~16 MB stack-wide for 10 marts × 7 days).
+The previous design materialized 10 mart Iceberg tables via streaming queries. That design has been replaced by a ClickHouse view layer over the unmodified medallion (raw → staging → core). 11 base `mart_*` views run the base aggregations; 17 `panel_*` views compose on top (one per Grafana panel). Rationale:
 
-### 15.8 Iceberg compaction endpoint
+- **One source of truth.** The streaming pipeline writes only the 12 medallion tables; no double-bookkeeping between materialized marts and their upstream sources.
+- **Cached, not materialized.** ClickHouse's named filesystem cache `s3_cache` holds hot Parquet bytes locally. Warm queries hit the cache, not SeaweedFS.
+- **No streaming top-N brittleness.** Panel views apply `ORDER BY … LIMIT N` at read time.
+- **Dashboard SQL lives in the repo.** Grafana panels query `SELECT * FROM atmosphere.panel_<name>` — all SQL is versioned under `spark/serving/views/`.
 
-Streaming writes produce many small files (baseline: ~60 k files across ~1.1 GB under steady state, 17–37 KB avg). The Query API exposes `GET /api/maintenance/table-stats` and `POST /api/maintenance/run` to report per-table state and trigger compaction (`rewrite_data_files` + `expire_snapshots`) inside the query-api SparkSession. Threshold: `file_count > 500 OR avg_file_kb < 30`. Per-table 10-minute rate limit prevents thrashing. Snapshot retention: 1 day. `min-input-files=2` override ensures small mart tables with 2–4 files still get compacted; `partial-progress.enabled=true` keeps a single file-group failure on large raw/staging tables from rolling back the whole rewrite. See `reference/iceberg-maintenance-procedures.md`.
+The mandatory `SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1` clause on every view is a hard rule: the `DataLakeCatalog` read path does not inherit profile-level cache settings and without the SETTINGS the cache stays empty. Verified empirically.
+
+### 15.8 Iceberg compaction
+
+Streaming writes produce many small files (baseline: ~60 k files across ~1.1 GB under steady state, 17–37 KB avg). `spark/analysis/maintenance.py` runs compaction (`rewrite_data_files` + `expire_snapshots`) against the 12 raw/staging/core tables, currently invoked ad-hoc inside the `spark` container. Threshold: `file_count > 500 OR avg_file_kb < 30`. Per-table 10-minute rate limit prevents thrashing. Snapshot retention: 1 day. `partial-progress.enabled=true` keeps a single file-group failure on large raw/staging tables from rolling back the whole rewrite.
 
 ### 15.8 30-day retention window
 
@@ -1162,13 +1105,14 @@ Spark 4.x includes built-in Iceberg support, the Python DataSource V2 API, and i
 | **Firehose** | The real-time stream of all events across the AT Protocol network (`com.atproto.sync.subscribeRepos`). |
 | **Iceberg** | Apache Iceberg — an open table format providing ACID transactions, schema evolution, and time travel for large analytical datasets. |
 | **Jetstream** | A service that converts the AT Protocol's binary CBOR firehose into lightweight JSON events delivered over WebSocket. |
-| **Medallion architecture** | A data organization pattern with progressively refined layers: raw (bronze), staging (silver), core (gold), mart. |
+| **Medallion architecture** | A data organization pattern with progressively refined layers. Atmosphere implements raw → staging → core as Iceberg tables; "mart-layer" aggregation lives in ClickHouse views, not materialized Iceberg tables. |
 | **NSID** | Namespaced Identifier — a reverse-DNS-style identifier for AT Protocol record types (e.g., `app.bsky.feed.post`). |
 | **PDS** | Personal Data Server — a user's data host in the AT Protocol. Stores repositories and handles authentication. |
 | **Polaris** | Apache Polaris — an open-source Iceberg REST catalog for multi-engine metadata management. |
 | **rkey** | Record Key — a unique identifier for a record within a collection, typically a TID (timestamp-based identifier). |
-| **RustFS** | An Apache 2.0-licensed, S3-API-compatible object storage server. Used as the storage backend for Iceberg data files. |
+| **SeaweedFS** | An Apache 2.0-licensed, S3-API-compatible object storage server. Used as the storage backend for Iceberg data files. |
 | **Strong reference** | An AT Protocol reference consisting of a URI and CID pair, uniquely identifying a specific version of a record. |
-| **Query API** | A custom FastAPI + PySpark REST API service that reads Iceberg tables and serves JSON responses to Grafana via the Infinity datasource plugin. |
+| **ClickHouse `DataLakeCatalog`** | A ClickHouse database engine that mounts an Iceberg REST catalog (Polaris) as a queryable database, exposing every catalog table to ClickHouse SQL without ingestion. Introduced in 24.x, hardened in 26.x. |
+| **`s3_cache`** | The named filesystem cache on the ClickHouse storage policy. Every view under `atmosphere.*` must end with `SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1` because the `DataLakeCatalog` read path does not propagate profile-level cache settings. |
 | **TID** | Timestamp Identifier — a base32-encoded timestamp used as record keys in the AT Protocol. |
 | **XLM-RoBERTa** | A cross-lingual transformer model trained on 100+ languages, used here for multilingual sentiment classification. |

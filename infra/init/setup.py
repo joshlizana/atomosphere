@@ -1,7 +1,7 @@
 """
-Atmosphere init container — creates RustFS bucket, Polaris catalog, Iceberg
-namespaces, and the ClickHouse read-only principal + DataLakeCatalog database.
-Idempotent: safe to run multiple times.
+Atmosphere init container — creates the SeaweedFS warehouse bucket, Polaris
+catalog, Iceberg namespaces, and the ClickHouse read-only principal +
+DataLakeCatalog database. Idempotent: safe to run multiple times.
 """
 
 import json
@@ -11,24 +11,25 @@ import time
 
 import boto3
 import requests
+from botocore.client import Config
 from botocore.exceptions import ClientError
 
-RUSTFS_ENDPOINT = os.environ.get("RUSTFS_ENDPOINT", "http://rustfs:9000")
-RUSTFS_ACCESS_KEY = os.environ.get("RUSTFS_ROOT_USER", "atmosphere")
-RUSTFS_SECRET_KEY = os.environ.get("RUSTFS_ROOT_PASSWORD", "atmosphere-secret-key")
+S3_ENDPOINT = os.environ["S3_ENDPOINT"]
+S3_ACCESS_KEY = os.environ["S3_ACCESS_KEY"]
+S3_SECRET_KEY = os.environ["S3_SECRET_KEY"]
 BUCKET_NAME = "warehouse"
 
-POLARIS_HOST = os.environ.get("POLARIS_HOST", "http://polaris:8181")
-POLARIS_REALM = "POLARIS"
-CLIENT_ID = os.environ.get("POLARIS_CLIENT_ID", "root")
-CLIENT_SECRET = os.environ.get("POLARIS_CLIENT_SECRET", "s3cr3t")
+POLARIS_HOST = os.environ["POLARIS_HOST"]
+POLARIS_REALM = os.environ["POLARIS_REALM"]
+CLIENT_ID = os.environ["POLARIS_CLIENT_ID"]
+CLIENT_SECRET = os.environ["POLARIS_CLIENT_SECRET"]
 
 CATALOG_NAME = "atmosphere"
-NAMESPACES = ["raw", "staging", "core", "mart"]
+NAMESPACES = ["raw", "staging", "core"]
 
-CLICKHOUSE_HOST = os.environ.get("CLICKHOUSE_HOST", "http://clickhouse:8123")
-CLICKHOUSE_ADMIN_USER = os.environ.get("CLICKHOUSE_ADMIN_USER", "atmosphere_admin")
-CLICKHOUSE_ADMIN_PASSWORD = os.environ.get("CLICKHOUSE_ADMIN_PASSWORD", "")
+CLICKHOUSE_HOST = os.environ["CLICKHOUSE_HOST"]
+CLICKHOUSE_ADMIN_USER = os.environ["CLICKHOUSE_ADMIN_USER"]
+CLICKHOUSE_ADMIN_PASSWORD = os.environ["CLICKHOUSE_ADMIN_PASSWORD"]
 
 CH_PRINCIPAL = "clickhouse"
 CH_PRINCIPAL_ROLE = "clickhouse_reader"
@@ -45,20 +46,25 @@ CH_CREDS_DIR = "/var/polaris-creds"
 CH_CREDS_FILE = f"{CH_CREDS_DIR}/clickhouse.json"
 
 
-def create_rustfs_bucket():
+def create_warehouse_bucket():
     s3 = boto3.client(
         "s3",
-        endpoint_url=RUSTFS_ENDPOINT,
-        aws_access_key_id=RUSTFS_ACCESS_KEY,
-        aws_secret_access_key=RUSTFS_SECRET_KEY,
+        endpoint_url=S3_ENDPOINT,
+        aws_access_key_id=S3_ACCESS_KEY,
+        aws_secret_access_key=S3_SECRET_KEY,
         region_name="us-east-1",
+        config=Config(
+            s3={"addressing_style": "path"},
+            signature_version="s3v4",
+        ),
     )
 
     try:
         s3.head_bucket(Bucket=BUCKET_NAME)
         print(f"  bucket '{BUCKET_NAME}' already exists")
     except ClientError as e:
-        if e.response["Error"]["Code"] == "404":
+        code = e.response["Error"]["Code"]
+        if code in ("404", "NoSuchBucket", "NotFound"):
             s3.create_bucket(Bucket=BUCKET_NAME)
             print(f"  bucket '{BUCKET_NAME}' created")
         else:
@@ -108,9 +114,15 @@ def create_catalog(token):
             "storageConfigInfo": {
                 "storageType": "S3",
                 "allowedLocations": [f"s3://{BUCKET_NAME}/"],
-                "endpoint": RUSTFS_ENDPOINT,
-                "endpointInternal": RUSTFS_ENDPOINT,
+                "endpoint": S3_ENDPOINT,
+                "endpointInternal": S3_ENDPOINT,
                 "pathStyleAccess": True,
+                # SeaweedFS doesn't implement AWS STS AssumeRole, so Polaris
+                # must skip the subscoping step and hand clients the raw
+                # storage credentials (the SEAWEEDFS_ADMIN_* identity). Without
+                # this, every request crashes with "Failed to get subscoped
+                # credentials: (Service: Sts, Status Code: 503...)".
+                "stsUnavailable": True,
             },
         }
     }
@@ -271,7 +283,12 @@ def wait_for_clickhouse():
 
 
 def create_clickhouse_database(creds):
-    ddl = f"""CREATE DATABASE IF NOT EXISTS polaris_catalog
+    # DROP + CREATE so setting changes (e.g. vended_credentials) always take
+    # effect. The database holds no data — it's just the DataLakeCatalog
+    # engine pointer to Polaris, so recreating is cheap and idempotent.
+    statements = [
+        "DROP DATABASE IF EXISTS polaris_catalog",
+        f"""CREATE DATABASE polaris_catalog
 ENGINE = DataLakeCatalog('{POLARIS_HOST}/api/catalog/v1')
 SETTINGS
     catalog_type = 'rest',
@@ -280,25 +297,44 @@ SETTINGS
     auth_scope = 'PRINCIPAL_ROLE:ALL',
     auth_header = 'Polaris-Realm:{POLARIS_REALM}',
     oauth_server_uri = '{POLARIS_HOST}/api/catalog/v1/oauth/tokens',
-    storage_endpoint = '{RUSTFS_ENDPOINT}',
-    vended_credentials = true
-"""
-    resp = requests.post(
-        CLICKHOUSE_HOST,
-        params={
-            "user": CLICKHOUSE_ADMIN_USER,
-            "password": CLICKHOUSE_ADMIN_PASSWORD,
-            "allow_database_iceberg": "1",
-            "allow_experimental_database_unity_catalog": "1",
-        },
-        data=ddl,
-        timeout=30,
-    )
-    if resp.status_code != 200:
-        print(f"  ERROR: ClickHouse CREATE DATABASE failed ({resp.status_code})")
-        print(f"  response: {resp.text}")
-        sys.exit(1)
-    print("  database 'polaris_catalog' ready on ClickHouse")
+    storage_endpoint = '{S3_ENDPOINT}/{BUCKET_NAME}',
+    vended_credentials = false
+""",
+    ]
+    for stmt in statements:
+        resp = requests.post(
+            CLICKHOUSE_HOST,
+            params={
+                "user": CLICKHOUSE_ADMIN_USER,
+                "password": CLICKHOUSE_ADMIN_PASSWORD,
+                "allow_database_iceberg": "1",
+                "allow_experimental_database_unity_catalog": "1",
+            },
+            data=stmt,
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            print(f"  ERROR: ClickHouse DDL failed ({resp.status_code})")
+            print(f"  stmt: {stmt[:80]}")
+            print(f"  response: {resp.text}")
+            sys.exit(1)
+    print("  database 'polaris_catalog' recreated on ClickHouse")
+
+
+def wait_for_s3(endpoint, name, retries=30, delay=2):
+    """SeaweedFS S3 gateway has no /health route. A 403/400 from a probe
+    request still means the gateway is up and signing requests."""
+    for i in range(retries):
+        try:
+            resp = requests.get(endpoint, timeout=5)
+            if resp.status_code in (200, 400, 403, 404):
+                return
+        except requests.ConnectionError:
+            pass
+        print(f"  waiting for {name}... ({i + 1}/{retries})")
+        time.sleep(delay)
+    print(f"  ERROR: {name} not available after {retries * delay}s")
+    sys.exit(1)
 
 
 def wait_for_service(url, name, retries=30, delay=2):
@@ -318,11 +354,13 @@ def wait_for_service(url, name, retries=30, delay=2):
 def main():
     print("=== Atmosphere Init ===")
 
-    print("\n[1/7] Waiting for RustFS...")
-    wait_for_service(f"{RUSTFS_ENDPOINT}/health", "RustFS")
+    print("\n[1/7] Waiting for SeaweedFS...")
+    # SeaweedFS S3 gateway responds 403 to anonymous bucket-list (correct
+    # behavior with auth enabled), so that's an acceptable readiness signal.
+    wait_for_s3(S3_ENDPOINT, "SeaweedFS")
 
-    print("\n[2/7] Creating RustFS bucket...")
-    create_rustfs_bucket()
+    print("\n[2/7] Creating warehouse bucket...")
+    create_warehouse_bucket()
 
     print("\n[3/7] Waiting for Polaris...")
     wait_for_service(f"{POLARIS_HOST.replace('8181', '8182')}/q/health", "Polaris")

@@ -34,6 +34,8 @@ This roadmap decomposes the Atmosphere platform into 8 milestones, each containi
 
 **Milestone completion criteria:** Each milestone ends with a checkpoint — a concrete verification step confirming the milestone deliverables are operational before downstream work begins.
 
+> **Post-MVP migration note (2026-04).** After M1–M8 were delivered as originally scoped, the mart layer was migrated from materialized Iceberg tables to ClickHouse views, and the query-serving layer (M6) was swapped from a custom `query-api` (FastAPI + PySpark) + Grafana Infinity datasource to a `clickhouse` service backed by Polaris `DataLakeCatalog` + the native `grafana-clickhouse-datasource` plugin. M7 Public Access (Cloudflare Tunnel) is deferred. Historical task breakdowns below are preserved as-delivered; see `docs/TDD.md` §5.5, §8, §9 and `docs/TRD.md` §5.4, §8.4 for current-state specifications.
+
 ---
 
 ## 2. Milestone Map
@@ -52,13 +54,13 @@ flowchart TD
 
 | Milestone | Summary | Key Deliverables |
 |---|---|---|
-| **M1: Foundation** | Infrastructure containers, storage, catalog, namespaces | docker-compose.yml, init container, RustFS, Polaris, PostgreSQL |
+| **M1: Foundation** | Infrastructure containers, storage, catalog, namespaces | docker-compose.yml, init container, SeaweedFS, Polaris, PostgreSQL |
 | **M2: Ingestion** | Custom WebSocket data source, raw event capture | JetstreamDataSource, ingest layer, raw_events table |
 | **M3: Staging** | Collection parsing, typed staging tables | Staging layer, 6 staging tables |
-| **M4: Core + Mart** | Enrichment, extraction, aggregation | Core layer, 4 core tables, 5 mart tables, 4 views |
-| **M5: Sentiment** | GPU-accelerated ML inference | Sentiment layer, core_post_sentiment. All 4 layers consolidated into spark-unified |
-| **M6: Dashboard** | Grafana with 5 analytical sections | query-api, Grafana provisioning, 17+ panels |
-| **M7: Public Access** | Cloudflare Tunnel, public URL | cloudflared container, domain configuration |
+| **M4: Core + Mart** | Enrichment, extraction, aggregation (mart since migrated to ClickHouse views) | Core layer, 5 core tables, originally 10 materialized mart tables |
+| **M5: Sentiment** | GPU-accelerated ML inference | Sentiment layer, core_post_sentiment. All 4 layers consolidated into spark |
+| **M6: Dashboard** | Grafana with 5 analytical sections (serving layer since migrated to ClickHouse) | Grafana provisioning, 17+ panels. Originally delivered on query-api + Infinity, now ClickHouse + native datasource plugin |
+| **M7: Public Access** *(Deferred)* | Cloudflare Tunnel, public URL | cloudflared container, domain configuration |
 | **M8: Hardening** | Retention, monitoring validation, documentation | Data lifecycle, smoke tests, final documentation |
 
 ---
@@ -74,7 +76,7 @@ flowchart TD
 | # | Task | Output |
 |---|---|---|
 | 1.1.1 | Create `pyproject.toml` with uv for Python dependency management | `pyproject.toml`, `uv.lock` |
-| 1.1.2 | Create `.env.example` with all required environment variables (RustFS credentials, Polaris URL, tunnel token placeholder) | `.env.example` |
+| 1.1.2 | Create `.env.example` with all required environment variables (SeaweedFS credentials, Polaris URL, tunnel token placeholder) | `.env.example` |
 | 1.1.3 | Create `.gitignore` (Python, Docker, IDE, .env) | `.gitignore` |
 | 1.1.4 | Create `Makefile` with targets: `up`, `down`, `logs`, `status`, `clean` | `Makefile` |
 
@@ -82,7 +84,7 @@ flowchart TD
 
 | # | Task | Output |
 |---|---|---|
-| 1.2.1 | Define `rustfs` service (16 GB, ports 9000/9001, `rustfs-data` volume, health check) | `docker-compose.yml` |
+| 1.2.1 | Define `seaweedfs` service (1 GB, S3 port 9000→8333, master 9333, `seaweedfs-data` volume, health check) | `docker-compose.yml` |
 | 1.2.2 | Define `postgres` service (2 GB, port 5432, `postgres-data` volume, `pg_isready` health check) | `docker-compose.yml` |
 | 1.2.3 | Define `polaris` service (2 GB, port 8181, depends_on postgres, health check on `/api/v1/config`) | `docker-compose.yml` |
 | 1.2.4 | Define `atmosphere-data` Docker network | `docker-compose.yml` |
@@ -93,25 +95,25 @@ flowchart TD
 | # | Task | Output |
 |---|---|---|
 | 1.3.1 | Write `infra/init/Dockerfile` (Python image with boto3 + requests) | `infra/init/Dockerfile` |
-| 1.3.2 | Write `infra/init/setup.py` — create `warehouse` bucket in RustFS via S3 API | `infra/init/setup.py` |
+| 1.3.2 | Write `infra/init/setup.py` — create `warehouse` bucket in SeaweedFS via S3 API | `infra/init/setup.py` |
 | 1.3.3 | Add Polaris warehouse registration (`atmosphere`) to `setup.py` | `infra/init/setup.py` |
 | 1.3.4 | Add Iceberg namespace creation (`atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`, `atmosphere.mart`) to `setup.py` | `infra/init/setup.py` |
 | 1.3.5 | Implement idempotent checks — skip creation if bucket/warehouse/namespace already exists | `infra/init/setup.py` |
-| 1.3.6 | Define `init` service in Compose (1 GB, depends_on rustfs + polaris, `restart: "no"`) | `docker-compose.yml` |
+| 1.3.6 | Define `init` service in Compose (1 GB, depends_on seaweedfs + polaris, `restart: "no"`) | `docker-compose.yml` |
 
 ### Component 1.4: Spark Base Image
 
 | # | Task | Output |
 |---|---|---|
 | 1.4.1 | Write `spark/Dockerfile` — Spark 4.x base image with Python 3.11 | `spark/Dockerfile` |
-| 1.4.2 | Add Iceberg + Polaris catalog JARs and S3/RustFS connector to the image | `spark/Dockerfile` |
+| 1.4.2 | Add Iceberg + Polaris catalog JARs and S3/SeaweedFS connector to the image | `spark/Dockerfile` |
 | 1.4.3 | Write `spark/conf/spark-defaults.conf` — Iceberg catalog config, S3 endpoint, checkpoint directory | `spark/conf/spark-defaults.conf` |
 
 ### Checkpoint: M1 Complete
 
 ```
 docker compose up -d
-docker compose ps          → rustfs, polaris, postgres healthy; init exited(0)
+docker compose ps          → seaweedfs, polaris, postgres healthy; init exited(0)
 # Verify via Polaris API:
 curl http://localhost:8181/api/v1/config   → 200 OK
 # Verify namespaces exist in Polaris catalog
@@ -147,7 +149,7 @@ curl http://localhost:8181/api/v1/config   → 200 OK
 | 2.2.2 | Configure `trigger(processingTime="5 seconds")` micro-batch trigger | `spark/ingestion/ingest_raw.py` |
 | 2.2.3 | Create `atmosphere.raw.raw_events` table on first write (`CREATE TABLE IF NOT EXISTS`) with partition scheme `days(ingested_at), collection` and sort order `ingested_at ASC` | `spark/ingestion/ingest_raw.py` |
 | 2.2.4 | Configure Spark checkpoint to `spark-checkpoints/ingest-raw/` subdirectory | `spark/ingestion/ingest_raw.py` |
-| 2.2.5 | Define ingest layer in spark-unified service (14 GB, port 4040, depends_on init, `restart: unless-stopped`) | `docker-compose.yml` |
+| 2.2.5 | Define ingest layer in spark service (14 GB, port 4040, depends_on init, `restart: unless-stopped`) | `docker-compose.yml` |
 
 ### Checkpoint: M2 Complete
 
@@ -190,7 +192,7 @@ SELECT COUNT(*) FROM atmosphere.raw.raw_events
 | 3.2.3 | Derive `event_time` from `time_us`: `TIMESTAMP(time_us / 1000000)` | `spark/transforms/staging.py` |
 | 3.2.4 | Create all six staging tables on first write with partition scheme `days(event_time)` and sort order `event_time ASC` | `spark/transforms/staging.py` |
 | 3.2.5 | Configure checkpoint to `spark-checkpoints/staging/` subdirectory | `spark/transforms/staging.py` |
-| 3.2.6 | Define staging layer in spark-unified service | `docker-compose.yml` |
+| 3.2.6 | Define staging layer in spark service | `docker-compose.yml` |
 
 ### Checkpoint: M3 Complete
 
@@ -255,7 +257,7 @@ SELECT text, created_at, langs, embed_type FROM atmosphere.staging.stg_posts LIM
 | 4.4.4 | Register the 4 mart views via `CREATE OR REPLACE VIEW` | `spark/transforms/core.py` |
 | 4.4.5 | Create all core and mart tables on first write with partition scheme `days(event_time)` | `spark/transforms/core.py` |
 | 4.4.6 | Configure checkpoint to `spark-checkpoints/core/` subdirectory | `spark/transforms/core.py` |
-| 4.4.7 | Define core layer in spark-unified service | `docker-compose.yml` |
+| 4.4.7 | Define core layer in spark service | `docker-compose.yml` |
 
 ### Checkpoint: M4 Complete
 
@@ -312,7 +314,7 @@ SELECT * FROM atmosphere.mart.mart_trending_hashtags LIMIT 10;
 | 5.3.2 | Apply `mapInPandas` with the `predict_sentiment` function | `spark/transforms/sentiment.py` |
 | 5.3.3 | Create `atmosphere.core.core_post_sentiment` table on first write with partition scheme `days(event_time)` | `spark/transforms/sentiment.py` |
 | 5.3.4 | Configure checkpoint to `spark-checkpoints/sentiment/` subdirectory | `spark/transforms/sentiment.py` |
-| 5.3.5 | Define sentiment layer in spark-unified service (14 GB total, GPU reservation via `deploy.resources.reservations.devices`, `restart: unless-stopped`) | `docker-compose.yml` |
+| 5.3.5 | Define sentiment layer in spark service (14 GB total, GPU reservation via `deploy.resources.reservations.devices`, `restart: unless-stopped`) | `docker-compose.yml` |
 
 ### Component 5.4: Sentiment Mart Activation
 
@@ -347,6 +349,8 @@ SELECT primary_lang, sentiment_label, COUNT(*)
 ---
 
 ## 8. M6: Dashboard
+
+> **Current state:** The Query API component below was replaced post-MVP by the `clickhouse` service and a view layer under `atmosphere.*`. Grafana now uses the native `grafana-clickhouse-datasource` plugin instead of Infinity. Panel queries select from `atmosphere.panel_*` views. See `docs/TDD.md` §9 for the current wiring.
 
 **Objective:** Deploy the Query API for REST query serving and build the five-section Grafana dashboard with provisioned data source and panels.
 
@@ -440,9 +444,11 @@ curl http://localhost:3000/api/health   → {"status":"ok"}
 
 ---
 
-## 9. M7: Public Access
+## 9. M7: Public Access *(Deferred)*
 
-**Objective:** Expose the Grafana dashboard via Cloudflare Tunnel at a public HTTPS URL.
+> **Current state:** M7 is deferred. The `cloudflared` container has been removed from the working tree. This milestone may be revisited in a future iteration.
+
+**Objective (when reinstated):** Expose the Grafana dashboard via Cloudflare Tunnel at a public HTTPS URL.
 
 **Requirements addressed:** FR-21, NFR-05
 
@@ -492,8 +498,8 @@ curl -I https://atmosphere.yourdomain.com   → 200 OK
 |---|---|---|
 | 8.2.1 | Run full acceptance criteria checklist (TRD §9.1, AC-01 through AC-06) | Validation report |
 | 8.2.2 | Verify disconnect recovery — kill WebSocket, confirm gapless cursor replay | Validation report |
-| 8.2.3 | Verify container restart recovery — `docker restart spark-unified`, confirm checkpoint resume | Validation report |
-| 8.2.4 | Verify stale data handling — stop spark-unified, confirm Grafana retains last known data | Validation report |
+| 8.2.3 | Verify container restart recovery — `docker restart spark`, confirm checkpoint resume | Validation report |
+| 8.2.4 | Verify stale data handling — stop spark, confirm Grafana retains last known data | Validation report |
 | 8.2.5 | Verify cold start — `make clean && make up`, confirm full stack operational within 5 minutes | Validation report |
 | 8.2.6 | Verify reproducibility — `git clone` on a fresh host, `make up`, confirm working system | Validation report |
 

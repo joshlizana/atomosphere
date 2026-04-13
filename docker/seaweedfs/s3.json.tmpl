@@ -1,0 +1,24 @@
+{
+  "identities": [
+    {
+      "name": "${SEAWEEDFS_ADMIN_USER}",
+      "credentials": [
+        {
+          "accessKey": "${SEAWEEDFS_ADMIN_USER}",
+          "secretKey": "${SEAWEEDFS_ADMIN_PASSWORD}"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    },
+    {
+      "name": "${SEAWEEDFS_READER_USER}",
+      "credentials": [
+        {
+          "accessKey": "${SEAWEEDFS_READER_USER}",
+          "secretKey": "${SEAWEEDFS_READER_PASSWORD}"
+        }
+      ],
+      "actions": ["Read:warehouse", "List:warehouse"]
+    }
+  ]
+}

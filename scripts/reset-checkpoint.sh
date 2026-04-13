@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # reset-checkpoint.sh — Clear streaming checkpoint for a specific layer
 #
-# Stops spark-unified, removes checkpoint data for the specified layer(s),
+# Stops the spark service, removes checkpoint data for the specified layer(s),
 # and restarts the service. All layers share one container and one volume
 # with subdirectories per layer.
 #
@@ -17,7 +17,7 @@ set -uo pipefail
 DRY_RUN=false
 RESET_ALL=false
 LOG_FILE="logs/reset-checkpoint.log"
-SERVICE="spark-unified"
+SERVICE="spark"
 VOLUME="atmosphere_spark-checkpoints"
 
 # Layer name → checkpoint subdirectory

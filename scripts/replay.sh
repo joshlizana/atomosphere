@@ -20,7 +20,7 @@ set -uo pipefail
 DRY_RUN=false
 LOG_FILE="logs/replay.log"
 CURSOR_ENV_VAR="JETSTREAM_CURSOR"
-SERVICE="spark-unified"
+SERVICE="spark"
 VOLUME="atmosphere_spark-checkpoints"
 
 # --- Parse args ---

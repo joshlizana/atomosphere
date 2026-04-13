@@ -32,9 +32,9 @@
 
 Atmosphere is a real-time streaming analytics platform that ingests the full Bluesky social network firehose, enriches posts with multilingual sentiment analysis, and delivers live dashboards accessible via a public URL.
 
-The platform processes approximately 240 events per second — posts, likes, reposts, follows, and blocks — through a four-layer medallion architecture. A GPU-accelerated transformer model scores every post for sentiment across 100+ languages. Five continuously updating dashboard sections surface sentiment trends, firehose throughput, language distribution, engagement velocity, trending hashtags, and pipeline health.
+The platform processes approximately 240 events per second — posts, likes, reposts, follows, and blocks — through a three-layer Iceberg medallion (raw → staging → core). A GPU-accelerated transformer model scores every post for sentiment across 100+ languages. ClickHouse, reading the Iceberg tables through the Polaris REST catalog, exposes 11 base mart views and 17 per-panel views to Grafana, which renders five continuously updating dashboard sections covering sentiment trends, firehose throughput, language distribution, engagement velocity, trending hashtags, and pipeline health.
 
-The distinguishing characteristic of Atmosphere is architectural consolidation. Apache Spark serves as the sole compute engine, handling ingestion, stream processing, transformation, ML inference, and query serving. Apache Iceberg provides the storage format. Grafana provides the visualization layer. Three technologies address twelve engineering concerns.
+The distinguishing characteristic of Atmosphere is architectural consolidation. Apache Spark handles ingestion, stream processing, transformation, and ML inference. Apache Iceberg is the storage format. ClickHouse serves Grafana through cached SQL views. Four technologies address a dozen engineering concerns.
 
 For comprehensive technical details — data model, container architecture, custom data source design, and ML pipeline — refer to the [Technical Design Document](TDD.md).
 
@@ -55,7 +55,7 @@ Atmosphere demonstrates three capabilities valued in data engineering roles:
 | Capability | How Atmosphere Demonstrates It |
 |---|---|
 | **Streaming architecture design** | End-to-end ownership of a real-time pipeline from WebSocket ingestion through dashboard delivery, with sub-10-second latency across five chained Spark Structured Streaming applications |
-| **Platform depth** | Mastery of a single platform (Spark) across seven distinct roles — ingestion, streaming, SQL transformation, scheduling, data quality, ML inference, and query serving — showing the ability to maximize value from existing infrastructure |
+| **Platform depth** | Mastery of Spark across six distinct roles — ingestion, streaming, SQL transformation, scheduling, data quality, and ML inference — paired with ClickHouse as a purpose-fit Iceberg query engine for low-latency dashboard serving |
 | **Applied ML in data engineering** | GPU-accelerated multilingual sentiment analysis (XLM-RoBERTa, 100+ languages) integrated into a streaming pipeline via `mapInPandas`, bridging data engineering and ML engineering |
 
 ### 2.3 Expected Outcomes
@@ -65,33 +65,25 @@ Atmosphere demonstrates three capabilities valued in data engineering roles:
 | Live public dashboard | A URL accessible to anyone showing real-time Bluesky analytics with 5-second refresh |
 | End-to-end streaming pipeline | Data flows from Jetstream WebSocket to Grafana dashboard within 10 seconds |
 | Multilingual sentiment analysis | Every post scored for sentiment — English, Japanese, Korean, Spanish, German, and 95+ additional languages |
-| Reproducible environment | Any engineer can clone the repository and run `make up` to start the full 8-container stack |
+| Reproducible environment | Any engineer can clone the repository and run `make up` to start the full 8-container stack (seaweedfs, postgres, polaris, clickhouse, init, spark, grafana, plus the polaris-bootstrap one-shot) |
 
 ---
 
-## 3. Stakeholder Analysis
+## 3. Stakeholders
 
 | Stakeholder | Interest | Role |
 |---|---|---|
-| **Hiring managers** | Evaluate data engineering, streaming, and ML integration skills through a working system with live data | Primary reviewer |
-| **Technical interviewers** | Assess architectural decisions, code quality, and understanding of Spark internals via the codebase and TDD | Technical reviewer |
-| **Peer engineers** | Understand design trade-offs, learn from the custom DataSource V2 implementation and GPU inference integration | Collaborator |
-| **Portfolio visitors** | Experience a live, interactive dashboard showing real-time social network activity | End user |
+| **Operators** | Run, monitor, and extend the platform; reason about trade-offs and failure modes via the BRD and TDD | Primary user |
+| **Peer engineers** | Understand design trade-offs and implementation patterns — custom DataSource V2, GPU inference integration, chained streaming queries | Collaborator |
+| **Dashboard visitors** | Experience a live, interactive dashboard showing real-time social network activity | End user |
 
-### 3.1 What Each Stakeholder Evaluates
+### 3.1 What Stakeholders Evaluate
 
-**Hiring managers** look for evidence of:
-- Ability to scope, design, and deliver a complete system end-to-end
-- Structured documentation — this BRD defines _why_ and _what_; the TDD defines _how_
-- A working artifact they can interact with — the live public dashboard
-
-**Technical interviewers** look for evidence of:
+**Operators and peer engineers** look for:
+- A working artifact: `git clone` followed by `make up` produces a running system
 - Spark depth — a custom DataSource V2 streaming source implemented entirely in Python, with offset tracking, checkpoint integration, and micro-batch boundary management
 - Architectural reasoning — documented rationale for each design decision (TDD §15)
 - Clean, well-organized code with SQL transformations in standalone files
-
-**Peer engineers** look for:
-- Reproducibility — `git clone` followed by `make up` produces a working system
 - Interesting technical patterns — custom Spark sources, GPU-accelerated `mapInPandas`, chained streaming queries across Iceberg tables
 - Honest documentation of trade-offs and scope boundaries
 
@@ -104,11 +96,11 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | # | Objective | Measure of Success |
 |---|---|---|
 | O1 | Ingest the full Bluesky Jetstream firehose in real time | Sustained ingestion of ~240 events/sec across all collections with gapless cursor-based recovery on disconnect |
-| O2 | Process events through a four-layer medallion architecture | `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`, and `atmosphere.mart` namespaces populated continuously with 5-second micro-batch cadence |
+| O2 | Process events through a three-layer Iceberg medallion | `atmosphere.raw`, `atmosphere.staging`, and `atmosphere.core` namespaces populated continuously with 5-second micro-batch cadence |
 | O3 | Score every post for multilingual sentiment | `core_post_sentiment` table contains a sentiment label (`positive`, `negative`, `neutral`) and confidence score for every row in `core_posts` |
-| O4 | Deliver live analytics through a Grafana dashboard | Five dashboard sections — sentiment, firehose activity, language/content, engagement velocity, pipeline health — refreshing every 5 seconds |
-| O5 | Expose the dashboard via a public URL | Dashboard accessible at `atmosphere.yourdomain.com` via Cloudflare Tunnel with outbound-only HTTPS |
-| O6 | Provide a single-command reproducible environment | `make up` starts the full 8-container stack (init, rustfs, polaris, postgres, spark-unified, query-api, grafana, cloudflared) from a clean clone |
+| O4 | Deliver live analytics through a Grafana dashboard | Five dashboard sections — sentiment, firehose activity, language/content, engagement velocity, pipeline health — refreshing every 5 seconds against ClickHouse views over Iceberg |
+| O5 | Expose the dashboard via a public URL | **Deferred** post-ClickHouse migration. Originally targeted Cloudflare Tunnel; will be reinstated once the new serving layer stabilizes |
+| O6 | Provide a single-command reproducible environment | `make up` starts the full 8-container stack (seaweedfs, postgres, polaris-bootstrap, polaris, clickhouse, init, spark, grafana) from a clean clone |
 
 ---
 
@@ -120,11 +112,12 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 |---|---|
 | Data ingestion | All Bluesky Jetstream event types: posts, likes, reposts, follows, blocks, profile updates (~240 events/sec, ~20.7M/day) |
 | Custom data source | PySpark DataSource V2 implementation wrapping the Jetstream WebSocket with offset tracking and checkpoint integration |
-| Stream processing | Five chained Spark Structured Streaming applications across four medallion layers, each running in its own container |
+| Stream processing | Five Structured Streaming queries running in a single unified Spark process across the three Iceberg medallion layers + sentiment |
 | Sentiment analysis | GPU-accelerated XLM-RoBERTa inference on all posts via `mapInPandas`, with automatic CPU adaptation |
-| Data storage | 20+ Apache Iceberg tables on RustFS (S3-compatible storage) with Polaris REST catalog |
-| Dashboard | Five-section Grafana dashboard (17+ panels) provisioned as code with Infinity datasource plugin |
-| Public access | Cloudflare Tunnel from local machine to public HTTPS URL |
+| Data storage | 12 Apache Iceberg tables (1 raw + 6 staging + 5 core) on SeaweedFS with Polaris REST catalog |
+| Query serving | ClickHouse 26.1 with `DataLakeCatalog` engine over Polaris; 11 base mart views + 17 panel views in `atmosphere.*`, all cached against the named filesystem cache `s3_cache` |
+| Dashboard | Five-section Grafana dashboard (19 panels) provisioned as code via the native `grafana-clickhouse-datasource` plugin |
+| Public access | **Deferred** — Cloudflare Tunnel will be reinstated post-migration |
 | Infrastructure | Docker Compose orchestration within a ~22 GB memory budget on a 32 GB workstation |
 | Documentation | BRD (this document), TDD, README |
 
@@ -152,15 +145,15 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 | FR-03 | Critical | Events are parsed by collection type into six typed staging tables: `stg_posts`, `stg_likes`, `stg_reposts`, `stg_follows`, `stg_blocks`, `stg_profiles` |
 | FR-04 | Critical | Posts are enriched in the core layer with extracted hashtags, mention DIDs, link URLs, primary language, and content type classification |
 | FR-05 | Critical | Every post receives a three-class sentiment score (`positive`, `negative`, `neutral`) from the XLM-RoBERTa model via GPU-accelerated `mapInPandas` |
-| FR-06 | Critical | Five materialized mart tables (`mart_sentiment_timeseries`, `mart_events_per_second`, `mart_trending_hashtags`, `mart_engagement_velocity`, `mart_pipeline_health`) are updated on each 5-second micro-batch |
-| FR-07 | Critical | The Grafana dashboard displays five analytical rows with sub-second query latency via Query API |
+| FR-06 | Critical | Eleven ClickHouse base mart views (`mart_events_per_second`, `mart_engagement_velocity`, `mart_sentiment_timeseries`, `mart_trending_hashtags`, `mart_most_mentioned`, `mart_language_distribution`, `mart_content_breakdown`, `mart_embed_usage`, `mart_firehose_stats`, `mart_top_posts`, `mart_pipeline_health`) read live from the Iceberg core/staging/raw layers and serve dashboard queries within 5 seconds |
+| FR-07 | Critical | The Grafana dashboard displays five analytical rows with sub-5-second query latency via the ClickHouse view layer |
 | FR-08 | Critical | The pipeline recovers automatically from WebSocket disconnects using exponential backoff and cursor-based replay |
-| FR-09 | High | Trending hashtags are identified by comparing current frequency against a historical baseline, with window sizes configurable via Grafana template variables |
-| FR-10 | High | The dashboard is publicly accessible via Cloudflare Tunnel at a custom domain |
-| FR-11 | High | The full stack starts from `make up` with idempotent initialization (init container creates RustFS buckets, Polaris warehouse, and Iceberg namespaces) |
-| FR-12 | Medium | Dashboard panels display the top 5 most positive and most negative recent posts with full text via the `mart_top_posts` view |
-| FR-13 | Medium | The pipeline health row shows per-container processing lag, events ingested per second, and last successful batch timestamps |
-| FR-14 | Medium | Four additional analytics views (`mart_language_distribution`, `mart_top_posts`, `mart_most_mentioned`, `mart_content_breakdown`) are served on-demand through the Query API |
+| FR-09 | High | Trending hashtags are identified by comparing current frequency against a historical baseline, computed live in `atmosphere.panel_trending_hashtags` |
+| FR-10 | High | The dashboard is publicly accessible via Cloudflare Tunnel at a custom domain **(Deferred until post-ClickHouse migration)** |
+| FR-11 | High | The full stack starts from `make up` with idempotent initialization (init container creates SeaweedFS buckets, the Polaris catalog + namespaces, and the ClickHouse reader principal + `polaris_catalog` database) |
+| FR-12 | Medium | Dashboard panels display the top 5 most positive and most negative recent posts with full text via `atmosphere.panel_top_posts_positive` and `atmosphere.panel_top_posts_negative` |
+| FR-13 | Medium | The pipeline health row shows processing lag, events ingested per second, and last event timestamps via `atmosphere.panel_pipeline_health` |
+| FR-14 | Medium | Seventeen `panel_*` ClickHouse views (one per Grafana panel) compose on the base mart views and are queried as `SELECT * FROM atmosphere.panel_<name>`. Every view ends with `SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1` |
 
 ### 6.2 Non-Functional Requirements
 
@@ -179,11 +172,11 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 
 | ID | Requirement |
 |---|---|
-| IR-01 | spark-unified connects to the Jetstream WebSocket via a custom Python DataSource V2 implementation (`JetstreamDataSource` + `JetstreamStreamReader`) |
-| IR-02 | spark-unified and query-api share table metadata through the Polaris REST catalog at port 8181 |
-| IR-03 | Grafana connects to Query API via the Infinity datasource plugin (REST API, port 8000) |
-| IR-04 | The cloudflared container routes public HTTPS traffic to the local Grafana instance on the `atmosphere-frontend` Docker network |
-| IR-05 | spark-unified accesses the host NVIDIA GPU via `nvidia-container-toolkit` with `deploy.resources.reservations.devices: [capabilities: [gpu]]` |
+| IR-01 | spark connects to the Jetstream WebSocket via a custom Python DataSource V2 implementation (`JetstreamDataSource` + `JetstreamStreamReader`) |
+| IR-02 | spark and clickhouse share table metadata through the Polaris REST catalog at port 8181; ClickHouse uses a dedicated reader principal provisioned by the init container and persisted in the `polaris-creds` named volume |
+| IR-03 | Grafana connects to ClickHouse via the native `grafana-clickhouse-datasource` plugin (HTTP, port 8123) using the `atmosphere_reader` user |
+| IR-04 | The Cloudflare Tunnel integration is deferred until after the ClickHouse migration stabilizes |
+| IR-05 | spark accesses the host NVIDIA GPU via `nvidia-container-toolkit` with `deploy.resources.reservations.devices: [capabilities: [gpu]]` |
 
 ---
 
@@ -218,10 +211,10 @@ Each objective follows SMART criteria (specific, measurable, achievable, relevan
 |---|---|---|
 | C-01 | Hardware | 32 GB RAM workstation with NVIDIA GPU, running WSL2 on Linux 5.15 |
 | C-02 | Compute | ~24 GB allocated to Docker; ~8 GB reserved for the host workstation |
-| C-03 | Memory budget | Unified architecture: spark-unified (14 GB), rustfs (3 GB), query-api (2 GB), polaris (1 GB), postgres (1 GB), grafana (512 MB), init (512 MB), cloudflared (256 MB) — total ~22.3 GB |
-| C-04 | Storage | All data stored locally in RustFS within Docker volumes; 30-day retention window |
-| C-05 | Network | Single outbound WebSocket to Jetstream; inbound public access via Cloudflare Tunnel |
-| C-06 | Technology | Three core technologies — Spark, Iceberg, Grafana — plus supporting infrastructure (RustFS, Polaris, PostgreSQL, cloudflared) |
+| C-03 | Memory budget | Unified architecture: spark (14 GB), seaweedfs (1 GB), clickhouse (2 GB), polaris (1 GB), postgres (1 GB), grafana (512 MB), init (512 MB) — total ~22 GB |
+| C-04 | Storage | All data stored locally in SeaweedFS within Docker volumes; 30-day retention window |
+| C-05 | Network | Single outbound WebSocket to Jetstream; public access via Cloudflare Tunnel deferred |
+| C-06 | Technology | Four core technologies — Spark, Iceberg, ClickHouse, Grafana — plus supporting infrastructure (SeaweedFS, Polaris, PostgreSQL) |
 | C-07 | Networking | Two Docker networks: `atmosphere-data` (internal compute/storage) and `atmosphere-frontend` (serving/public access) |
 
 ---
@@ -258,28 +251,27 @@ The project is complete when:
 
 | Technology | Responsibilities |
 |---|---|
-| **Apache Spark 4.x** | WebSocket ingestion (custom DataSource V2), stream processing (Structured Streaming, 5-second micro-batches), SQL transformation, ML inference (`mapInPandas` with GPU), query serving (Query API) |
-| **Apache Iceberg** | ACID table format across four medallion layers — `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core`, `atmosphere.mart` — on RustFS with Polaris REST catalog |
-| **Grafana** | Live dashboard with five analytical sections, provisioned as code, connected via Infinity datasource plugin to Query API (REST) |
+| **Apache Spark 4.x** | WebSocket ingestion (custom DataSource V2), stream processing (Structured Streaming, 5-second micro-batches), SQL transformation, ML inference (`mapInPandas` with GPU) |
+| **Apache Iceberg** | ACID table format across three medallion layers — `atmosphere.raw`, `atmosphere.staging`, `atmosphere.core` — on SeaweedFS with Polaris REST catalog |
+| **ClickHouse 26.1** | Query serving via the `DataLakeCatalog` engine over Polaris. 11 base mart views + 17 panel views in `atmosphere.*`, all cached against the named filesystem cache `s3_cache` |
+| **Grafana** | Live dashboard with five analytical sections, provisioned as code, connected via the native `grafana-clickhouse-datasource` plugin |
 
 ### 10.2 Data Flow
 
 ```mermaid
 flowchart LR
-    JS[Jetstream\nWebSocket] --> SU[spark-unified]
+    JS[Jetstream\nWebSocket] --> SU[spark]
     SU --> RAW[(raw_events)]
     RAW --> SU
     SU --> STG[(stg_posts\nstg_likes\nstg_reposts\nstg_follows\nstg_blocks\nstg_profiles)]
     STG --> SU
     SU --> CORE[(core_posts\ncore_mentions\ncore_hashtags\ncore_engagement)]
     SU --> SENT[(core_post_sentiment)]
-    CORE & SENT --> MART[(5 materialized marts\n4 views)]
-    MART --> ST[query-api]
-    ST --> GF[Grafana]
-    GF --> PU[Public URL]
+    CORE & SENT --> CH[ClickHouse\n11 base + 17 panel views]
+    CH --> GF[Grafana]
 ```
 
-Five Spark Structured Streaming applications run in separate containers, chained via Iceberg `readStream`. Each application processes 5-second micro-batches. The Query API exposes all tables via REST for Grafana queries.
+Five Structured Streaming queries run inside a single unified `spark` process, chained via Iceberg `readStream`. Each processes 5-second micro-batches. ClickHouse reads the resulting Iceberg tables through the Polaris REST catalog and exposes them as a two-tier view layer: 11 base `mart_*` views over the medallion layers, and 17 `panel_*` views (one per Grafana panel) that compose on the base views. Every view caches results against the named filesystem cache `s3_cache`.
 
 ### 10.3 Key Technical Differentiators
 
@@ -288,7 +280,7 @@ Five Spark Structured Streaming applications run in separate containers, chained
 | **Custom PySpark DataSource V2** | Deep Spark internals — implementing the streaming source contract (`initialOffset`, `read`, `commit`, `schema`) entirely in Python, with dual offset tracking (Spark checkpoint + Jetstream cursor) |
 | **GPU-accelerated `mapInPandas`** | ML engineering integrated into a data pipeline — vectorized batch inference at batch_size=64 with automatic GPU/CPU adaptation, processing ~200-500 texts/sec on GPU |
 | **Five chained streaming queries** | Production streaming architecture — independent applications coordinated through Iceberg table state, each with its own lifecycle, memory allocation, and checkpoint |
-| **Cloudflare Tunnel** | Infrastructure design — all compute stays local; only rendered dashboard HTML traverses the tunnel to a public URL |
+| **ClickHouse view layer over Iceberg** | Engine-level fit-for-purpose — one streaming engine for ingest/transform, a separate purpose-built OLAP engine for query serving, sharing the same Iceberg/Polaris metadata. Two view tiers (base mart + per-panel) keep dashboard SQL out of the dashboard JSON. |
 
 ---
 
@@ -298,13 +290,13 @@ Five Spark Structured Streaming applications run in separate containers, chained
 
 | Phase | Deliverables | Dependencies |
 |---|---|---|
-| **Phase 1: Foundation** | `docker-compose.yml` with infrastructure containers (RustFS, Polaris, PostgreSQL). Init container creates `warehouse` bucket, `atmosphere` catalog, and four Iceberg namespaces. | — |
+| **Phase 1: Foundation** | `docker-compose.yml` with infrastructure containers (SeaweedFS, Polaris, PostgreSQL). Init container creates `warehouse` bucket, `atmosphere` catalog, and the three Iceberg namespaces (`raw`, `staging`, `core`). | — |
 | **Phase 2: Ingestion** | Custom `JetstreamDataSource` + `JetstreamStreamReader` (Python DataSource V2). Ingest layer writing `raw_events` to `atmosphere.raw` with dual offset tracking. | Phase 1 |
 | **Phase 3: Staging** | Staging layer parsing all six collection types into typed staging tables with daily partitioning. | Phase 2 |
-| **Phase 4: Core + Mart** | Core layer producing five enriched core tables (`core_posts`, `core_mentions`, `core_hashtags`, `core_engagement`) and five materialized mart tables. Four analytics views. | Phase 3 |
-| **Phase 5: Sentiment** | Sentiment layer running XLM-RoBERTa inference on GPU via `mapInPandas` (batch_size=64). Docker image with CUDA + embedded model weights (~1.1 GB). `core_post_sentiment` table. All four layers consolidated into spark-unified. | Phase 4 |
-| **Phase 6: Dashboard** | Grafana with five provisioned dashboard sections (17+ panels). query-api serving REST queries via Infinity plugin. | Phase 4 (Phase 5 for sentiment panels) |
-| **Phase 7: Public Access** | cloudflared container, Cloudflare Tunnel configuration, public URL. README and documentation finalized. | Phase 6 |
+| **Phase 4: Core** | Core layer producing five enriched core tables (`core_posts`, `core_mentions`, `core_hashtags`, `core_engagement`, `core_post_sentiment`). | Phase 3 |
+| **Phase 5: Sentiment** | Sentiment layer running XLM-RoBERTa inference on GPU via `mapInPandas` (batch_size=64). Docker image with CUDA + embedded model weights (~1.1 GB). All four streaming layers consolidated into the unified spark process. | Phase 4 |
+| **Phase 6: ClickHouse Serving** | ClickHouse 26.1 with `DataLakeCatalog` engine over Polaris. Init bootstraps the reader principal + `polaris_catalog` database. Spark bootstraps 11 base mart views + 17 panel views from `spark/serving/views/`. Grafana provisioned with the native ClickHouse datasource and a 19-panel dashboard. | Phase 5 |
+| **Phase 7: Public Access** | Cloudflare Tunnel reinstatement, public URL, README and documentation finalized. **Deferred until ClickHouse migration stabilizes.** | Phase 6 |
 
 ### 11.2 Phase Dependencies
 
@@ -350,8 +342,9 @@ flowchart TD
 | **mapInPandas** | A Spark API that applies a Python function to batches of rows as Pandas DataFrames, enabling vectorized batch ML inference |
 | **Medallion architecture** | A data organization pattern with progressively refined layers: raw, staging, core, mart |
 | **Polaris** | Apache Polaris — an open-source Iceberg REST catalog for multi-engine metadata management |
-| **RustFS** | An Apache 2.0-licensed, S3-API-compatible object storage server |
+| **SeaweedFS** | An Apache 2.0-licensed, S3-API-compatible object storage server |
 | **Structured Streaming** | Spark's stream processing engine that treats live data streams as continuously appended tables |
 | **TDD** | Technical Design Document — the companion document covering implementation details, data model, and system architecture |
-| **Query API** | FastAPI + PySpark REST API for SQL query serving, replacing the legacy Spark Thrift Server |
+| **ClickHouse `DataLakeCatalog`** | A ClickHouse database engine that mounts an Iceberg REST catalog (Polaris) as a queryable database, exposing every catalog table to ClickHouse SQL without ingestion. |
+| **`s3_cache`** | The named filesystem cache configured on the ClickHouse storage policy. Every `atmosphere.*` view ends with `SETTINGS filesystem_cache_name = 's3_cache', enable_filesystem_cache = 1` because the DataLakeCatalog read path does not propagate profile-level cache settings. |
 | **XLM-RoBERTa** | A cross-lingual transformer model trained on 100+ languages, used for multilingual sentiment classification |

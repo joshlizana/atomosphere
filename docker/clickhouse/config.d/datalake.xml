@@ -4,9 +4,36 @@
         <default>
             <allow_experimental_database_unity_catalog>1</allow_experimental_database_unity_catalog>
             <allow_database_iceberg>1</allow_database_iceberg>
+            <!-- Route all S3/Iceberg reads through the named filesystem cache.
+                 Iceberg data files are immutable, so once a parquet file is
+                 fetched from SeaweedFS it never needs to be re-fetched. New
+                 Spark micro-batches add new files; the cache stays warm for
+                 old ones. -->
+            <enable_filesystem_cache>1</enable_filesystem_cache>
+            <filesystem_cache_name>s3_cache</filesystem_cache_name>
         </default>
     </profiles>
+    <!-- Named filesystem cache used by the default profile. 5 GiB on the
+         clickhouse-data volume — plenty for our current ~5 MB working set. -->
+    <filesystem_caches>
+        <s3_cache>
+            <path>/var/lib/clickhouse/filesystem_caches/s3_cache</path>
+            <max_size>5368709120</max_size>
+        </s3_cache>
+    </filesystem_caches>
     <logger>
         <level>information</level>
     </logger>
+    <!-- URL-prefix match: any S3 read under http://seaweedfs:8333/warehouse/
+         picks up these static credentials. Used by the DataLakeCatalog engine
+         when vended_credentials=false. -->
+    <s3>
+        <seaweedfs_warehouse>
+            <endpoint>http://seaweedfs:8333/warehouse/</endpoint>
+            <access_key_id from_env="SEAWEEDFS_READER_USER"/>
+            <secret_access_key from_env="SEAWEEDFS_READER_PASSWORD"/>
+            <region>us-east-1</region>
+            <use_environment_credentials>false</use_environment_credentials>
+        </seaweedfs_warehouse>
+    </s3>
 </clickhouse>

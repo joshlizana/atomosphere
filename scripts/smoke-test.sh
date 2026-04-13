@@ -16,7 +16,7 @@ set -uo pipefail
 
 # --- Configuration ---
 WAIT_MODE=false
-SPARK_SQL_CONTAINER="spark-unified"
+SPARK_SQL_CONTAINER="spark"
 LOG_FILE="logs/smoke-test.log"
 
 # Counters
@@ -101,7 +101,7 @@ fi
 # ==========================================================
 print_header "AC-01: Container Health"
 
-EXPECTED_SERVICES=(rustfs polaris postgres spark-unified query-api)
+EXPECTED_SERVICES=(seaweedfs polaris postgres spark)
 OPTIONAL_SERVICES=(grafana cloudflared)
 
 for svc in "${EXPECTED_SERVICES[@]}"; do
@@ -238,7 +238,7 @@ spark.stop()
 
 if [[ -z "$SQL_RESULTS" ]]; then
     echo "  ERROR: PySpark returned no results."
-    echo "  Check: docker compose logs --tail=20 spark-unified"
+    echo "  Check: docker compose logs --tail=20 spark"
     record FAIL "pyspark" "no results returned"
 else
     # Helper to extract value

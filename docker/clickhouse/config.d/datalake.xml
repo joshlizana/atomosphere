@@ -1,0 +1,12 @@
+<clickhouse>
+    <listen_host>0.0.0.0</listen_host>
+    <profiles>
+        <default>
+            <allow_experimental_database_unity_catalog>1</allow_experimental_database_unity_catalog>
+            <allow_database_iceberg>1</allow_database_iceberg>
+        </default>
+    </profiles>
+    <logger>
+        <level>information</level>
+    </logger>
+</clickhouse>

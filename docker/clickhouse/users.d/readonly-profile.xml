@@ -1,0 +1,15 @@
+<clickhouse>
+    <profiles>
+        <atmosphere_reader>
+            <readonly>1</readonly>
+            <use_iceberg_partition_pruning>1</use_iceberg_partition_pruning>
+            <allow_experimental_database_unity_catalog>1</allow_experimental_database_unity_catalog>
+            <allow_database_iceberg>1</allow_database_iceberg>
+            <constraints>
+                <max_execution_time>
+                    <changeable_in_readonly>1</changeable_in_readonly>
+                </max_execution_time>
+            </constraints>
+        </atmosphere_reader>
+    </profiles>
+</clickhouse>

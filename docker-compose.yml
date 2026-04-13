@@ -93,6 +93,38 @@ services:
     mem_limit: 1g
     restart: unless-stopped
 
+  # --- ClickHouse Serving Layer ---
+
+  clickhouse:
+    build:
+      context: ./docker/clickhouse
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+    environment:
+      CLICKHOUSE_READER_PASSWORD: ${CLICKHOUSE_READER_PASSWORD}
+      CLICKHOUSE_ADMIN_PASSWORD: ${CLICKHOUSE_ADMIN_PASSWORD}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    depends_on:
+      polaris:
+        condition: service_healthy
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    networks:
+      - atmosphere-data
+      - atmosphere-frontend
+    mem_limit: 2g
+    restart: unless-stopped
+
   # --- Init Container ---
 
   init:
@@ -106,11 +138,18 @@ services:
       POLARIS_HOST: http://polaris:8181
       POLARIS_CLIENT_ID: root
       POLARIS_CLIENT_SECRET: s3cr3t
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_ADMIN_USER: ${CLICKHOUSE_ADMIN_USER}
+      CLICKHOUSE_ADMIN_PASSWORD: ${CLICKHOUSE_ADMIN_PASSWORD}
+    volumes:
+      - polaris-creds:/var/polaris-creds
     depends_on:
       rustfs:
         condition: service_healthy
       polaris:
         condition: service_healthy
+      clickhouse:
+        condition: service_started
     networks:
       - atmosphere-data
     mem_limit: 512m
@@ -151,40 +190,6 @@ services:
             - capabilities: [gpu]
     restart: unless-stopped
 
-  # --- Query API (Grafana data source) ---
-
-  query-api:
-    build:
-      context: ./spark
-      dockerfile: Dockerfile
-    container_name: query-api
-    command:
-      - python3
-      - /opt/spark/work-dir/spark/serving/query_api.py
-    ports:
-      - "8000:8000"
-    environment:
-      AWS_ACCESS_KEY_ID: ${RUSTFS_ROOT_USER}
-      AWS_SECRET_ACCESS_KEY: ${RUSTFS_ROOT_PASSWORD}
-      AWS_REGION: us-east-1
-      SPARK_CONF_DIR: /opt/spark/conf-query
-    volumes:
-      - ./spark/conf/spark-defaults-query.conf:/opt/spark/conf-query/spark-defaults.conf:ro
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    depends_on:
-      init:
-        condition: service_completed_successfully
-    networks:
-      - atmosphere-data
-      - atmosphere-frontend
-    mem_limit: 2g
-    restart: unless-stopped
-
   # --- Grafana Dashboard ---
 
   grafana:
@@ -208,8 +213,8 @@ services:
       timeout: 5s
       retries: 5
     depends_on:
-      query-api:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     networks:
       - atmosphere-frontend
     mem_limit: 512m
@@ -220,6 +225,8 @@ volumes:
   postgres-data:
   spark-checkpoints:
   grafana-data:
+  clickhouse-data:
+  polaris-creds:
 
 networks:
   atmosphere-data:

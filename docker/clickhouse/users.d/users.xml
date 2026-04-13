@@ -1,0 +1,23 @@
+<clickhouse>
+    <users>
+        <atmosphere_reader>
+            <password from_env="CLICKHOUSE_READER_PASSWORD"/>
+            <profile>atmosphere_reader</profile>
+            <quota>default</quota>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+        </atmosphere_reader>
+
+        <atmosphere_admin>
+            <password from_env="CLICKHOUSE_ADMIN_PASSWORD"/>
+            <profile>default</profile>
+            <quota>default</quota>
+            <networks>
+                <ip>127.0.0.1</ip>
+                <ip>::1</ip>
+                <ip>172.16.0.0/12</ip>
+            </networks>
+        </atmosphere_admin>
+    </users>
+</clickhouse>

@@ -5,7 +5,9 @@ SELECT
     'like'          AS event_type,
     did             AS actor_did,
     subject_uri,
-    event_time
+    event_time,
+    time_us,
+    current_timestamp() AS ingested_at
 FROM {likes_source}
 WHERE operation = 'create'
 
@@ -15,6 +17,8 @@ SELECT
     'repost'        AS event_type,
     did             AS actor_did,
     subject_uri,
-    event_time
+    event_time,
+    time_us,
+    current_timestamp() AS ingested_at
 FROM {reposts_source}
 WHERE operation = 'create'

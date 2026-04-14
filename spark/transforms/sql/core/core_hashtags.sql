@@ -6,7 +6,8 @@ SELECT
     lower(exploded_tag)                                                     AS tag,
     did                                                                     AS author_did,
     rkey                                                                    AS post_rkey,
-    event_time
+    event_time,
+    current_timestamp()                                                     AS ingested_at
 FROM (
     -- Tags from facets
     SELECT did, rkey, event_time,

@@ -43,11 +43,46 @@ SENTIMENT_SCHEMA = StructType([
     StructField("sentiment_neutral", DoubleType(), nullable=True),
     StructField("sentiment_label", StringType(), nullable=True),
     StructField("sentiment_confidence", DoubleType(), nullable=True),
+    StructField("ingested_at", TimestampType(), nullable=False),
 ])
 
 # Preprocess pattern: replace @mentions and URLs per model docs
 _MENTION_RE = re.compile(r"@\S+")
 _URL_RE = re.compile(r"https?://\S+")
+
+# Module-level cache so the 1.1 GB model loads once per Python worker process
+# instead of once per micro-batch. Spark reuses Python workers across batches
+# (spark.python.worker.reuse=true), so a module-level variable survives, but
+# predict_sentiment() is called fresh every batch — without this cache the
+# pipeline() constructor ran every trigger and the GPU spent most of its time
+# loading weights instead of inferring.
+_PIPE = None
+
+
+def _get_pipe():
+    global _PIPE
+    if _PIPE is not None:
+        return _PIPE
+
+    import torch
+    from transformers import pipeline
+
+    device = 0 if torch.cuda.is_available() else -1
+    device_name = "GPU" if device == 0 else "CPU"
+    logger.info("Loading sentiment model on %s (device=%d)", device_name, device)
+
+    _PIPE = pipeline(
+        "sentiment-analysis",
+        model=MODEL_PATH,
+        tokenizer=MODEL_PATH,
+        device=device,
+        top_k=None,
+        truncation=True,
+        max_length=512,
+        torch_dtype=torch.float16 if device == 0 else torch.float32,
+    )
+    logger.info("Sentiment model loaded on %s", device_name)
+    return _PIPE
 
 
 def preprocess(text):
@@ -72,25 +107,8 @@ def predict_sentiment(iterator):
         pandas DataFrames matching SENTIMENT_SCHEMA
     """
     import pandas as pd
-    import torch
-    from transformers import pipeline
 
-    # GPU/CPU adaptation (NFR-11)
-    device = 0 if torch.cuda.is_available() else -1
-    device_name = "GPU" if device == 0 else "CPU"
-    logger.info("Loading sentiment model on %s (device=%d)", device_name, device)
-
-    pipe = pipeline(
-        "sentiment-analysis",
-        model=MODEL_PATH,
-        tokenizer=MODEL_PATH,
-        device=device,
-        top_k=None,
-        truncation=True,
-        max_length=512,
-    )
-
-    logger.info("Sentiment model loaded on %s", device_name)
+    pipe = _get_pipe()
 
     for batch_df in iterator:
         if batch_df.empty:
@@ -100,8 +118,9 @@ def predict_sentiment(iterator):
         # Preprocess text for the model
         texts = batch_df["text"].fillna("").apply(preprocess).tolist()
 
-        # Run inference with batch_size=64 (FR-12)
-        results = pipe(texts, batch_size=64)
+        # Run inference — batch_size=128 saturates the GPU better; FP16 halves
+        # VRAM + roughly doubles throughput on consumer cards.
+        results = pipe(texts, batch_size=128)
 
         # Extract scores per row (FR-11)
         positives = []
@@ -126,6 +145,7 @@ def predict_sentiment(iterator):
             confidences.append(best["score"])
 
         # Build output DataFrame matching SENTIMENT_SCHEMA
+        now = pd.Timestamp.utcnow().tz_localize(None)
         output = pd.DataFrame({
             "did": batch_df["did"].values,
             "time_us": batch_df["time_us"].values,
@@ -137,6 +157,7 @@ def predict_sentiment(iterator):
             "sentiment_neutral": neutrals,
             "sentiment_label": labels,
             "sentiment_confidence": confidences,
+            "ingested_at": now,
         })
 
         yield output
@@ -154,9 +175,13 @@ CREATE TABLE IF NOT EXISTS {TARGET_TABLE} (
     sentiment_negative  DOUBLE,
     sentiment_neutral   DOUBLE,
     sentiment_label     STRING,
-    sentiment_confidence DOUBLE
+    sentiment_confidence DOUBLE,
+    ingested_at         TIMESTAMP   NOT NULL
 ) USING iceberg
 PARTITIONED BY (days(event_time))
+TBLPROPERTIES (
+    'write.distribution-mode' = 'hash'
+)
 """
 
 
@@ -171,13 +196,20 @@ def start_queries(spark):
     spark.sql(CREATE_TABLE_SQL)
     spark.sql(f"ALTER TABLE {TARGET_TABLE} WRITE ORDERED BY event_time ASC")
 
-    # Read core_posts as streaming Iceberg source
+    # Read core_posts as streaming Iceberg source. Cap each micro-batch so the
+    # GPU flushes a commit every ~10k rows instead of sitting on the full
+    # backlog — keeps sentiment progress visible and bounds peak GPU memory.
     posts_stream = spark.readStream \
         .format("iceberg") \
+        .option("streaming-max-rows-per-micro-batch", "10000") \
         .load(SOURCE_TABLE)
 
-    # Select only needed columns for inference
-    input_df = posts_stream.select("did", "time_us", "event_time", "rkey", "text")
+    # Select only needed columns for inference, then collapse to a single
+    # partition so exactly one mapInPandas worker runs on the GPU. Multiple
+    # workers would load multiple model copies (~1.1 GB each) and serialize
+    # on the single CUDA compute queue — they can't beat one saturated
+    # worker, and at higher worker counts they thrash VRAM.
+    input_df = posts_stream.select("did", "time_us", "event_time", "rkey", "text").coalesce(1)
 
     # Apply sentiment inference via mapInPandas (FR-12)
     scored_df = input_df.mapInPandas(predict_sentiment, schema=SENTIMENT_SCHEMA)

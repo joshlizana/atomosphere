@@ -9,6 +9,7 @@ SELECT
     get_json_object(raw_json, '$.commit.rkey')                              AS rkey,
     get_json_object(raw_json, '$.commit.operation')                         AS operation,
     get_json_object(raw_json, '$.commit.record.displayName')                AS display_name,
-    get_json_object(raw_json, '$.commit.record.description')                AS description
+    get_json_object(raw_json, '$.commit.record.description')                AS description,
+    current_timestamp()                                                     AS ingested_at
 FROM {source}
 WHERE collection = 'app.bsky.actor.profile'

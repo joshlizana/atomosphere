@@ -10,7 +10,12 @@
   "panels": [
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 100,
       "title": "Sentiment Live Feed",
       "type": "row"
@@ -20,11 +25,21 @@
       "title": "Rolling Sentiment Score",
       "description": "Positive/negative/neutral sentiment averages over 5-second windows",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -43,103 +58,146 @@
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "avg_positive" },
+            "matcher": {
+              "id": "byName",
+              "options": "avg_positive"
+            },
             "properties": [
-              { "id": "displayName", "value": "Positive" },
-              { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Positive"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "avg_negative" },
+            "matcher": {
+              "id": "byName",
+              "options": "avg_negative"
+            },
             "properties": [
-              { "id": "displayName", "value": "Negative" },
-              { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Negative"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "avg_neutral" },
+            "matcher": {
+              "id": "byName",
+              "options": "avg_neutral"
+            },
             "properties": [
-              { "id": "displayName", "value": "Neutral" },
-              { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }
+              {
+                "id": "displayName",
+                "value": "Neutral"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
             ]
           }
         ]
       },
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/sentiment_timeseries",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "window_start", "text": "Time", "type": "timestamp" },
-            { "selector": "avg_positive", "text": "avg_positive", "type": "number" },
-            { "selector": "avg_negative", "text": "avg_negative", "type": "number" },
-            { "selector": "avg_neutral", "text": "avg_neutral", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_sentiment_timeseries",
+          "format": 0
         }
       ]
     },
     {
       "id": 2,
       "title": "Current Sentiment",
-      "description": "Latest 5-second window average sentiment score",
-      "type": "gauge",
-      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 1 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "description": "Dominant sentiment label across today's scored posts",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 0.3 },
-              { "color": "yellow", "value": 0.45 },
-              { "color": "green", "value": 0.6 }
-            ]
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "text"
           },
-          "min": 0,
-          "max": 1,
-          "unit": "percentunit"
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "positive": { "text": "POSITIVE", "color": "green", "index": 0 },
+                "negative": { "text": "NEGATIVE", "color": "red", "index": 1 },
+                "neutral":  { "text": "NEUTRAL",  "color": "yellow", "index": 2 }
+              }
+            }
+          ]
         },
         "overrides": []
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
-          "fields": "/^avg_positive$/"
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^sentiment_label$/"
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value",
+        "justifyMode": "center",
         "orientation": "auto"
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/sentiment_timeseries?limit=1",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "avg_positive", "text": "avg_positive", "type": "number" },
-            { "selector": "avg_negative", "text": "avg_negative", "type": "number" },
-            { "selector": "avg_neutral", "text": "avg_neutral", "type": "number" },
-            { "selector": "post_count", "text": "post_count", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_current_sentiment",
+          "format": 1
         }
       ]
     },
@@ -148,23 +206,49 @@
       "title": "Top 5 Most Positive Posts",
       "description": "Recent posts ranked by positive sentiment score",
       "type": "table",
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 1 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "text" },
+            "matcher": {
+              "id": "byName",
+              "options": "text"
+            },
             "properties": [
-              { "id": "custom.width", "value": 300 }
+              {
+                "id": "custom.width",
+                "value": 300
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "sentiment_positive" },
+            "matcher": {
+              "id": "byName",
+              "options": "sentiment_positive"
+            },
             "properties": [
-              { "id": "displayName", "value": "Positive" },
-              { "id": "unit", "value": "percentunit" },
-              { "id": "custom.width", "value": 80 }
+              {
+                "id": "displayName",
+                "value": "Positive"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
             ]
           }
         ]
@@ -172,75 +256,32 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "footer": { "show": false }
+        "footer": {
+          "show": false
+        }
       },
       "transformations": [
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "fieldName": "rank_type",
-                "config": { "id": "equal", "options": { "value": "most_positive" } }
-              }
-            ],
-            "type": "include",
-            "match": "all"
-          }
-        },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "did": true,
-              "rkey": true,
-              "event_time": true,
-              "created_at": true,
-              "hashtag_count": true,
-              "mention_count": true,
-              "link_count": true,
-              "sentiment_negative": true,
-              "sentiment_neutral": true,
-              "sentiment_confidence": true,
-              "rank_type": true,
               "content_type": true,
               "primary_lang": true
             }
           }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "sort": [
-              { "field": "sentiment_positive", "desc": true }
-            ]
-          }
-        },
-        {
-          "id": "limit",
-          "options": { "limitField": 5 }
         }
       ],
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/top_posts",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "text", "text": "text", "type": "string" },
-            { "selector": "sentiment_positive", "text": "sentiment_positive", "type": "number" },
-            { "selector": "sentiment_negative", "text": "sentiment_negative", "type": "number" },
-            { "selector": "sentiment_label", "text": "sentiment_label", "type": "string" },
-            { "selector": "rank_type", "text": "rank_type", "type": "string" },
-            { "selector": "primary_lang", "text": "primary_lang", "type": "string" },
-            { "selector": "content_type", "text": "content_type", "type": "string" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_top_posts_positive",
+          "format": 1
         }
       ]
     },
@@ -249,23 +290,49 @@
       "title": "Top 5 Most Negative Posts",
       "description": "Recent posts ranked by negative sentiment score",
       "type": "table",
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 1 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "text" },
+            "matcher": {
+              "id": "byName",
+              "options": "text"
+            },
             "properties": [
-              { "id": "custom.width", "value": 300 }
+              {
+                "id": "custom.width",
+                "value": 300
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "sentiment_negative" },
+            "matcher": {
+              "id": "byName",
+              "options": "sentiment_negative"
+            },
             "properties": [
-              { "id": "displayName", "value": "Negative" },
-              { "id": "unit", "value": "percentunit" },
-              { "id": "custom.width", "value": 80 }
+              {
+                "id": "displayName",
+                "value": "Negative"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
             ]
           }
         ]
@@ -273,81 +340,43 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "footer": { "show": false }
+        "footer": {
+          "show": false
+        }
       },
       "transformations": [
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "fieldName": "rank_type",
-                "config": { "id": "equal", "options": { "value": "most_negative" } }
-              }
-            ],
-            "type": "include",
-            "match": "all"
-          }
-        },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "did": true,
-              "rkey": true,
-              "event_time": true,
-              "created_at": true,
-              "hashtag_count": true,
-              "mention_count": true,
-              "link_count": true,
-              "sentiment_positive": true,
-              "sentiment_neutral": true,
-              "sentiment_confidence": true,
-              "rank_type": true,
               "content_type": true,
               "primary_lang": true
             }
           }
-        },
-        {
-          "id": "sortBy",
-          "options": {
-            "sort": [
-              { "field": "sentiment_negative", "desc": true }
-            ]
-          }
-        },
-        {
-          "id": "limit",
-          "options": { "limitField": 5 }
         }
       ],
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/top_posts",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "text", "text": "text", "type": "string" },
-            { "selector": "sentiment_positive", "text": "sentiment_positive", "type": "number" },
-            { "selector": "sentiment_negative", "text": "sentiment_negative", "type": "number" },
-            { "selector": "sentiment_label", "text": "sentiment_label", "type": "string" },
-            { "selector": "rank_type", "text": "rank_type", "type": "string" },
-            { "selector": "primary_lang", "text": "primary_lang", "type": "string" },
-            { "selector": "content_type", "text": "content_type", "type": "string" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_top_posts_negative",
+          "format": 1
         }
       ]
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 101,
       "title": "Firehose Activity",
       "type": "row"
@@ -357,11 +386,21 @@
       "title": "Events/sec by Collection",
       "description": "Event throughput grouped by Bluesky collection type",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 10, "x": 0, "y": 10 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 0,
+        "y": 10
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisLabel": "events/sec",
@@ -371,7 +410,10 @@
             "lineWidth": 1,
             "pointSize": 5,
             "showPoints": "never",
-            "stacking": { "mode": "normal", "group": "A" },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "spanNulls": true
           },
           "unit": "ops"
@@ -379,31 +421,36 @@
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "transformations": [
         {
           "id": "partitionByValues",
-          "options": { "fields": ["collection"] }
+          "options": {
+            "fields": [
+              "collection"
+            ]
+          }
         }
       ],
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/events_per_second",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "window_start", "text": "Time", "type": "timestamp" },
-            { "selector": "collection", "text": "collection", "type": "string" },
-            { "selector": "events_per_second", "text": "events_per_second", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_events_per_second_by_collection",
+          "format": 0
         }
       ]
     },
@@ -412,11 +459,21 @@
       "title": "Operations Breakdown",
       "description": "Create, update, and delete operations over time",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 6, "x": 10, "y": 10 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 10,
+        "y": 10
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisLabel": "events",
@@ -432,31 +489,36 @@
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/sql?q=SELECT window.start AS window_start, operation, COUNT(*) AS op_count FROM atmosphere.raw.raw_events WHERE ingested_at >= current_timestamp() - INTERVAL 5 MINUTES GROUP BY window(ingested_at, '5 seconds'), operation&limit=5000",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "window_start", "text": "Time", "type": "timestamp" },
-            { "selector": "operation", "text": "operation", "type": "string" },
-            { "selector": "op_count", "text": "op_count", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_operations_breakdown",
+          "format": 0
         }
       ],
       "transformations": [
         {
           "id": "partitionByValues",
-          "options": { "fields": ["operation"] }
+          "options": {
+            "fields": [
+              "operation"
+            ]
+          }
         }
       ]
     },
@@ -465,15 +527,28 @@
       "title": "Active Users (5 min)",
       "description": "Approximate distinct DIDs active in the last 5 minutes (per-minute approx_count_distinct, summed)",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 4, "x": 16, "y": 10 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 16,
+        "y": 10
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "blue", "value": null }
+              {
+                "color": "blue",
+                "value": null
+              }
             ]
           },
           "unit": "short"
@@ -482,7 +557,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["sum"],
+          "calcs": [
+            "sum"
+          ],
           "fields": "/^active_users$/"
         },
         "colorMode": "value",
@@ -494,17 +571,14 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/firehose_stats",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "active_users", "text": "active_users", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_active_users",
+          "format": 1
         }
       ]
     },
@@ -513,15 +587,28 @@
       "title": "Total Events (5 min)",
       "description": "Total events ingested in the last 5 minutes",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 4, "x": 20, "y": 10 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 10
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "purple", "value": null }
+              {
+                "color": "purple",
+                "value": null
+              }
             ]
           },
           "unit": "short"
@@ -530,7 +617,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["sum"],
+          "calcs": [
+            "sum"
+          ],
           "fields": "/^total_events$/"
         },
         "colorMode": "value",
@@ -542,23 +631,25 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/firehose_stats",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "total_events", "text": "total_events", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_total_events",
+          "format": 1
         }
       ]
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
       "id": 102,
       "title": "Language & Content",
       "type": "row"
@@ -568,46 +659,54 @@
       "title": "Language Distribution",
       "description": "Top languages by post count in the last 5 minutes",
       "type": "piechart",
-      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 19 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 19
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" }
+          "color": {
+            "mode": "palette-classic"
+          }
         },
         "overrides": []
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"]
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "pieType": "donut",
-        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
-        "tooltip": { "mode": "single" }
-      },
-      "transformations": [
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": { "pct": true }
-          }
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "tooltip": {
+          "mode": "single"
         }
-      ],
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/language_distribution?limit=10",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "primary_lang", "text": "primary_lang", "type": "string" },
-            { "selector": "post_count", "text": "post_count", "type": "number" },
-            { "selector": "pct", "text": "pct", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_language_distribution",
+          "format": 1
         }
       ]
     },
@@ -616,11 +715,21 @@
       "title": "Post Type Ratio",
       "description": "Distribution of post types: original, reply, quote, media",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 19 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 19
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "fillOpacity": 80,
@@ -633,24 +742,24 @@
         "orientation": "horizontal",
         "xTickLabelRotation": 0,
         "showValue": "always",
-        "legend": { "displayMode": "hidden" },
-        "tooltip": { "mode": "single" }
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/content_breakdown",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "content_type", "text": "content_type", "type": "string" },
-            { "selector": "post_count", "text": "post_count", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_content_breakdown",
+          "format": 1
         }
       ]
     },
@@ -659,11 +768,21 @@
       "title": "Embed Usage",
       "description": "Distribution of embed types: text-only, images, links, video, etc.",
       "type": "barchart",
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 19 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 19
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "fillOpacity": 80,
@@ -676,24 +795,24 @@
         "orientation": "horizontal",
         "xTickLabelRotation": 0,
         "showValue": "always",
-        "legend": { "displayMode": "hidden" },
-        "tooltip": { "mode": "single" }
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/embed_usage",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "embed_category", "text": "embed_category", "type": "string" },
-            { "selector": "post_count", "text": "post_count", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_embed_usage",
+          "format": 1
         }
       ]
     },
@@ -702,33 +821,98 @@
       "title": "Trending Hashtags",
       "description": "Top hashtags by spike ratio (current 5-min count vs 30-min baseline)",
       "type": "table",
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 19 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 19
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "tag" },
+            "matcher": {
+              "id": "byName",
+              "options": "tag"
+            },
             "properties": [
-              { "id": "displayName", "value": "Hashtag" },
-              { "id": "custom.width", "value": 150 }
+              {
+                "id": "displayName",
+                "value": "Hashtag"
+              },
+              {
+                "id": "custom.width",
+                "value": 150
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "current_count" },
+            "matcher": {
+              "id": "byName",
+              "options": "current_count"
+            },
             "properties": [
-              { "id": "displayName", "value": "Count (5m)" },
-              { "id": "custom.width", "value": 90 }
+              {
+                "id": "displayName",
+                "value": "Count (5m)"
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "spike_ratio" },
+            "matcher": {
+              "id": "byName",
+              "options": "spike_ratio"
+            },
             "properties": [
-              { "id": "displayName", "value": "Spike Ratio" },
-              { "id": "custom.width", "value": 100 },
-              { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } },
-              { "id": "color", "value": { "mode": "continuous-GrYlRd" } },
-              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 5 }] } }
+              {
+                "id": "displayName",
+                "value": "Spike Ratio"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "continuous-GrYlRd"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 5
+                    }
+                  ]
+                }
+              }
             ]
           }
         ]
@@ -736,8 +920,15 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "footer": { "show": false },
-        "sortBy": [{ "displayName": "Spike Ratio", "desc": true }]
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Spike Ratio",
+            "desc": true
+          }
+        ]
       },
       "transformations": [
         {
@@ -751,33 +942,33 @@
         },
         {
           "id": "limit",
-          "options": { "limitField": 20 }
+          "options": {
+            "limitField": 20
+          }
         }
       ],
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/trending_hashtags?limit=50",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "computed_at", "text": "computed_at", "type": "timestamp" },
-            { "selector": "tag", "text": "tag", "type": "string" },
-            { "selector": "current_count", "text": "current_count", "type": "number" },
-            { "selector": "baseline_count", "text": "baseline_count", "type": "number" },
-            { "selector": "spike_ratio", "text": "spike_ratio", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_trending_hashtags",
+          "format": 1
         }
       ]
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
       "id": 103,
       "title": "Engagement Velocity",
       "type": "row"
@@ -787,11 +978,22 @@
       "title": "Likes per Second",
       "description": "Like events per second over 5-second windows",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 28 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 0,
+        "y": 28
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "red", "mode": "fixed" },
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisLabel": "likes/sec",
@@ -808,40 +1010,24 @@
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "hidden" },
-        "tooltip": { "mode": "single" }
-      },
-      "transformations": [
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "fieldName": "event_type",
-                "config": { "id": "equal", "options": { "value": "like" } }
-              }
-            ],
-            "type": "include",
-            "match": "all"
-          }
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
         }
-      ],
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/engagement_velocity",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "window_start", "text": "Time", "type": "timestamp" },
-            { "selector": "event_type", "text": "event_type", "type": "string" },
-            { "selector": "events_per_second", "text": "events_per_second", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_likes_per_second",
+          "format": 0
         }
       ]
     },
@@ -850,11 +1036,22 @@
       "title": "Reposts per Second",
       "description": "Repost events per second over 5-second windows",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 28 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 6,
+        "y": 28
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "blue", "mode": "fixed" },
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisLabel": "reposts/sec",
@@ -871,40 +1068,24 @@
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "hidden" },
-        "tooltip": { "mode": "single" }
-      },
-      "transformations": [
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "fieldName": "event_type",
-                "config": { "id": "equal", "options": { "value": "repost" } }
-              }
-            ],
-            "type": "include",
-            "match": "all"
-          }
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
         }
-      ],
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/engagement_velocity",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "window_start", "text": "Time", "type": "timestamp" },
-            { "selector": "event_type", "text": "event_type", "type": "string" },
-            { "selector": "events_per_second", "text": "events_per_second", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_reposts_per_second",
+          "format": 0
         }
       ]
     },
@@ -913,11 +1094,22 @@
       "title": "Follow/Unfollow Rate",
       "description": "Follow events per second over 5-second windows",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 28 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 28
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "fixedColor": "green", "mode": "fixed" },
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisLabel": "follows/sec",
@@ -934,40 +1126,24 @@
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "hidden" },
-        "tooltip": { "mode": "single" }
-      },
-      "transformations": [
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
-              {
-                "fieldName": "event_type",
-                "config": { "id": "equal", "options": { "value": "follow" } }
-              }
-            ],
-            "type": "include",
-            "match": "all"
-          }
+        "legend": {
+          "displayMode": "hidden"
+        },
+        "tooltip": {
+          "mode": "single"
         }
-      ],
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/engagement_velocity",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "window_start", "text": "Time", "type": "timestamp" },
-            { "selector": "event_type", "text": "event_type", "type": "string" },
-            { "selector": "events_per_second", "text": "events_per_second", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_follows_per_second",
+          "format": 0
         }
       ]
     },
@@ -976,23 +1152,49 @@
       "title": "Most Mentioned Accounts",
       "description": "Top 20 most mentioned DIDs in the last 5 minutes",
       "type": "table",
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 28 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 28
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "mentioned_did" },
+            "matcher": {
+              "id": "byName",
+              "options": "mentioned_did"
+            },
             "properties": [
-              { "id": "displayName", "value": "Account (DID)" },
-              { "id": "custom.width", "value": 280 }
+              {
+                "id": "displayName",
+                "value": "Account (DID)"
+              },
+              {
+                "id": "custom.width",
+                "value": 280
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "mention_count" },
+            "matcher": {
+              "id": "byName",
+              "options": "mention_count"
+            },
             "properties": [
-              { "id": "displayName", "value": "Mentions" },
-              { "id": "custom.width", "value": 80 }
+              {
+                "id": "displayName",
+                "value": "Mentions"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
             ]
           }
         ]
@@ -1000,30 +1202,38 @@
       "options": {
         "showHeader": true,
         "cellHeight": "sm",
-        "footer": { "show": false },
-        "sortBy": [{ "displayName": "Mentions", "desc": true }]
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Mentions",
+            "desc": true
+          }
+        ]
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/most_mentioned?limit=20",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "mentioned_did", "text": "mentioned_did", "type": "string" },
-            { "selector": "mention_count", "text": "mention_count", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_most_mentioned",
+          "format": 1
         }
       ]
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 36
+      },
       "id": 104,
       "title": "Pipeline Health",
       "type": "row"
@@ -1033,17 +1243,36 @@
       "title": "Events Ingested/sec",
       "description": "Current ingestion throughput (events per second over last minute)",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 37 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 37
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 50 },
-              { "color": "green", "value": 100 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 100
+              }
             ]
           },
           "unit": "ops"
@@ -1052,7 +1281,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "/^events_per_second$/"
         },
         "colorMode": "background",
@@ -1064,18 +1295,14 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/pipeline_health",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "events_per_second", "text": "events_per_second", "type": "number" },
-            { "selector": "events_last_minute", "text": "events_last_minute", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_pipeline_health",
+          "format": 1
         }
       ]
     },
@@ -1084,17 +1311,36 @@
       "title": "Processing Lag",
       "description": "Time difference between current time and latest ingested event",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 37 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 37
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 10 },
-              { "color": "red", "value": 30 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
             ]
           },
           "unit": "s"
@@ -1103,7 +1349,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "/^processing_lag_seconds$/"
         },
         "colorMode": "background",
@@ -1115,17 +1363,14 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/pipeline_health",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "processing_lag_seconds", "text": "processing_lag_seconds", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_pipeline_health",
+          "format": 1
         }
       ]
     },
@@ -1134,45 +1379,89 @@
       "title": "Last Batch Timestamp",
       "description": "Most recent event and measurement timestamps",
       "type": "table",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 37 },
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 37
+      },
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "clickhouse-atmosphere"
+      },
       "fieldConfig": {
         "defaults": {},
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "measured_at" },
+            "matcher": {
+              "id": "byName",
+              "options": "measured_at"
+            },
             "properties": [
-              { "id": "displayName", "value": "Measured At" }
+              {
+                "id": "displayName",
+                "value": "Measured At"
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "last_event_ingested" },
+            "matcher": {
+              "id": "byName",
+              "options": "last_event_ingested"
+            },
             "properties": [
-              { "id": "displayName", "value": "Last Event Ingested" }
+              {
+                "id": "displayName",
+                "value": "Last Event Ingested"
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "max_event_time" },
+            "matcher": {
+              "id": "byName",
+              "options": "max_event_time"
+            },
             "properties": [
-              { "id": "displayName", "value": "Max Event Time" }
+              {
+                "id": "displayName",
+                "value": "Max Event Time"
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "events_last_minute" },
+            "matcher": {
+              "id": "byName",
+              "options": "events_last_minute"
+            },
             "properties": [
-              { "id": "displayName", "value": "Events (1 min)" }
+              {
+                "id": "displayName",
+                "value": "Events (1 min)"
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "events_per_second" },
+            "matcher": {
+              "id": "byName",
+              "options": "events_per_second"
+            },
             "properties": [
-              { "id": "displayName", "value": "Events/sec" }
+              {
+                "id": "displayName",
+                "value": "Events/sec"
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "processing_lag_seconds" },
+            "matcher": {
+              "id": "byName",
+              "options": "processing_lag_seconds"
+            },
             "properties": [
-              { "id": "displayName", "value": "Lag (sec)" }
+              {
+                "id": "displayName",
+                "value": "Lag (sec)"
+              }
             ]
           }
         ]
@@ -1180,38 +1469,40 @@
       "options": {
         "showHeader": true,
         "cellHeight": "md",
-        "footer": { "show": false }
+        "footer": {
+          "show": false
+        }
       },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity-atmosphere" },
-          "type": "json",
-          "source": "url",
-          "format": "table",
-          "url": "http://query-api:8000/api/mart/pipeline_health",
-          "url_options": { "method": "GET" },
-          "root_selector": "$.data",
-          "columns": [
-            { "selector": "measured_at", "text": "measured_at", "type": "timestamp" },
-            { "selector": "last_event_ingested", "text": "last_event_ingested", "type": "timestamp" },
-            { "selector": "max_event_time", "text": "max_event_time", "type": "timestamp" },
-            { "selector": "events_last_minute", "text": "events_last_minute", "type": "number" },
-            { "selector": "events_per_second", "text": "events_per_second", "type": "number" },
-            { "selector": "processing_lag_seconds", "text": "processing_lag_seconds", "type": "number" }
-          ],
-          "parser": "backend"
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "clickhouse-atmosphere"
+          },
+          "editorType": "sql",
+          "queryType": "table",
+          "rawSql": "SELECT * FROM atmosphere.panel_pipeline_health",
+          "format": 1
         }
       ]
     }
   ],
   "refresh": "5s",
   "schemaVersion": 39,
-  "tags": ["atmosphere", "bluesky", "real-time"],
+  "tags": [
+    "atmosphere",
+    "bluesky",
+    "real-time"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "selected": true, "text": "5m", "value": "5" },
+        "current": {
+          "selected": true,
+          "text": "5m",
+          "value": "5"
+        },
         "description": "Window size for trending hashtags (minutes)",
         "hide": 0,
         "includeAll": false,
@@ -1219,10 +1510,26 @@
         "name": "trending_window",
         "label": "Trending Window",
         "options": [
-          { "selected": true, "text": "5m", "value": "5" },
-          { "selected": false, "text": "15m", "value": "15" },
-          { "selected": false, "text": "30m", "value": "30" },
-          { "selected": false, "text": "1h", "value": "60" }
+          {
+            "selected": true,
+            "text": "5m",
+            "value": "5"
+          },
+          {
+            "selected": false,
+            "text": "15m",
+            "value": "15"
+          },
+          {
+            "selected": false,
+            "text": "30m",
+            "value": "30"
+          },
+          {
+            "selected": false,
+            "text": "1h",
+            "value": "60"
+          }
         ],
         "query": "5 : 5m, 15 : 15m, 30 : 30m, 60 : 1h",
         "type": "custom"
@@ -1234,7 +1541,13 @@
     "to": "now"
   },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m",
+      "5m"
+    ]
   },
   "timezone": "browser",
   "title": "Atmosphere \u2014 Bluesky Analytics",

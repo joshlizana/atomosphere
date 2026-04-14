@@ -178,11 +178,21 @@ def compact_table(spark: SparkSession, table: str) -> dict[str, Any]:
         # partial-progress.enabled=true: lets a single failed file group
         #   commit independently instead of rolling back the whole job — safer
         #   on the big raw/staging tables.
+        # max-concurrent-file-group-rewrites=1: default is 5. On tables with
+        #   an active streaming writer (raw_events, stg_*, core_*), 5 parallel
+        #   group commits race each other AND the streaming micro-batch commit
+        #   for the same `main` branch CAS, producing frequent
+        #   CommitFailedException. Serializing group commits removes intra-job
+        #   contention; only the 5s streaming commit still competes, and that
+        #   one either wins cleanly or the rewrite retries per partial-progress.
         logger.info("Compacting %s (rewrite_data_files)", table)
         rewrite_row = spark.sql(
             f"CALL atmosphere.system.rewrite_data_files("
             f"table => '{table}', "
-            f"options => map('min-input-files', '2', 'partial-progress.enabled', 'true'))"
+            f"options => map("
+            f"'min-input-files', '2', "
+            f"'partial-progress.enabled', 'true', "
+            f"'max-concurrent-file-group-rewrites', '1'))"
         ).collect()[0]
 
         logger.info("Expiring snapshots for %s older than %s", table, expire_before)

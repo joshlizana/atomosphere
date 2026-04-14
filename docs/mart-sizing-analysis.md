@@ -66,17 +66,25 @@ watermark, and writes append-only to an Iceberg table under `atmosphere.mart`.
 
 ## Acceptance thresholds
 
-- Every mart read endpoint returns in <5 s on a warm query-api.
-- Dashboards refresh at 5 s without timeouts (Grafana Infinity default).
+- Every `atmosphere.panel_*` ClickHouse view returns in <5 s, cold or warm.
+- Dashboards refresh at 5 s without timeouts via the native `grafana-clickhouse-datasource` plugin.
 - Streaming queries all keep up (no growing query lag in Spark UI :4040).
-- Total mart layer storage stays under 50 MB after 24 h of steady state.
+- `s3_cache` filesystem cache keeps warm reads sub-second for recent buckets.
+
+> **2026-04 update:** The mart layer was subsequently rewritten again — from
+> materialized Iceberg tables to ClickHouse views over `polaris_catalog.{raw,
+> staging,core}.*`. The materialization described below was the intermediate
+> step between view-based marts on `query-api` and the current ClickHouse
+> view layer. Latency targets are unchanged; the mechanism for hitting them
+> shifted from Iceberg pre-aggregation to ClickHouse's `s3_cache` filesystem
+> cache + view composition. See `docs/TDD.md` §5.5 and §15.7.
 
 ## Maintenance threshold (approved 2026-04-12)
 
-Since materialized marts are themselves Iceberg tables, they need the same
-compaction treatment as upstream layers. The new `/api/maintenance/table-stats`
-and `/api/maintenance/run` endpoints apply to the full set of 22
-`atmosphere.*` tables (raw + 6 staging + 5 core + 10 mart).
+Iceberg compaction applies across the upstream layers. With the post-MVP
+migration to ClickHouse views the Iceberg surface area is 12 tables
+(raw + 6 staging + 5 core); `spark/analysis/maintenance.py` runs compaction
+on demand.
 
 Compaction triggers when either condition holds:
 
@@ -87,7 +95,7 @@ Per-table 10-minute rate limit prevents thrashing. Snapshot retention is 1 day.
 `rewrite_data_files` runs with `min-input-files=2` (so small mart tables with
 2–4 files still get compacted) and `partial-progress.enabled=true` (so a single
 file-group failure on the big raw/staging tables doesn't roll back the whole
-rewrite). See `reference/iceberg-maintenance-procedures.md`.
+rewrite).
 
 ## Post-materialization re-measurement
 

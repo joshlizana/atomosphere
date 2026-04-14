@@ -1,15 +1,16 @@
 """
-spark-core: Structured Streaming job for core enrichment and mart views.
+spark-core: Structured Streaming job for core enrichment.
 
 Reads:  atmosphere.staging.stg_{posts,likes,reposts}
 Writes: atmosphere.core.{core_posts, core_mentions, core_hashtags, core_engagement}
-Views:  atmosphere.mart.mart_pipeline_health (only — other marts are materialized
-        as streaming queries in spark/transforms/marts.py)
 
 Stream 1: stg_posts → core_posts + core_mentions + core_hashtags (foreachBatch)
 Stream 2: stg_likes ∪ stg_reposts → core_engagement (direct write)
 
-Requirements: FR-06–FR-09, FR-15–FR-18, FR-25
+All mart aggregations are served by ClickHouse views over polaris_catalog;
+see spark/serving/clickhouse_views.py.
+
+Requirements: FR-06–FR-09, FR-25
 """
 
 import logging
@@ -53,7 +54,8 @@ CREATE_CORE_TABLES = {
             content_type    STRING,
             hashtags        ARRAY<STRING>,
             mention_dids    ARRAY<STRING>,
-            link_urls       ARRAY<STRING>
+            link_urls       ARRAY<STRING>,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -62,7 +64,8 @@ CREATE_CORE_TABLES = {
             author_did      STRING      NOT NULL,
             mentioned_did   STRING      NOT NULL,
             post_rkey       STRING,
-            event_time      TIMESTAMP   NOT NULL
+            event_time      TIMESTAMP   NOT NULL,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -71,7 +74,8 @@ CREATE_CORE_TABLES = {
             tag             STRING      NOT NULL,
             author_did      STRING      NOT NULL,
             post_rkey       STRING,
-            event_time      TIMESTAMP   NOT NULL
+            event_time      TIMESTAMP   NOT NULL,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -80,7 +84,9 @@ CREATE_CORE_TABLES = {
             event_type      STRING      NOT NULL,
             actor_did       STRING      NOT NULL,
             subject_uri     STRING,
-            event_time      TIMESTAMP   NOT NULL
+            event_time      TIMESTAMP   NOT NULL,
+            time_us         BIGINT      NOT NULL,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -96,19 +102,12 @@ CREATE_CORE_TABLES = {
             sentiment_negative  DOUBLE,
             sentiment_neutral   DOUBLE,
             sentiment_label     STRING,
-            sentiment_confidence DOUBLE
+            sentiment_confidence DOUBLE,
+            ingested_at         TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
 }
-
-# --- Unmaterialized mart views (the rest are streaming-materialized in marts.py) ---
-# pipeline_health stays as a view because it's already <4s warm and is metadata,
-# not data — materializing it would be circular (it monitors the streaming pipeline).
-MART_VIEWS = {
-    "atmosphere.mart.mart_pipeline_health": "mart/mart_pipeline_health.sql",
-}
-
 
 def load_sql(relative_path):
     """Load a SQL file relative to SQL_DIR."""
@@ -145,14 +144,13 @@ def process_posts_batch(spark, batch_df, batch_id):
 
 
 def start_queries(spark):
-    """Set up core DDL, mart views, and start streaming queries.
+    """Set up core DDL and start streaming queries.
 
     Returns a list of started StreamingQuery objects (does not block).
     Can be called from the unified entrypoint or from main() for standalone use.
     """
-    # --- Ensure namespaces exist ---
+    # --- Ensure namespace exists ---
     spark.sql("CREATE NAMESPACE IF NOT EXISTS atmosphere.core")
-    spark.sql("CREATE NAMESPACE IF NOT EXISTS atmosphere.mart")
 
     # --- Create core tables (FR-25) ---
     logger.info("Ensuring core tables exist")
@@ -160,13 +158,6 @@ def start_queries(spark):
         spark.sql(ddl)
         spark.sql(f"ALTER TABLE {table} WRITE ORDERED BY event_time ASC")
         logger.info("Table ready: %s", table)
-
-    # --- Register mart views (FR-15–FR-18) ---
-    logger.info("Registering mart views")
-    for view_name, sql_path in MART_VIEWS.items():
-        sql = load_sql(sql_path)
-        spark.sql(f"CREATE OR REPLACE VIEW {view_name} AS {sql}")
-        logger.info("View ready: %s", view_name)
 
     # --- Stream 1: stg_posts → core_posts + core_mentions + core_hashtags ---
     posts_stream = spark.readStream \
@@ -191,6 +182,8 @@ def start_queries(spark):
             "did AS actor_did",
             "subject_uri",
             "event_time",
+            "time_us",
+            "current_timestamp() AS ingested_at",
         )
 
     reposts_stream = spark.readStream \
@@ -202,6 +195,8 @@ def start_queries(spark):
             "did AS actor_did",
             "subject_uri",
             "event_time",
+            "time_us",
+            "current_timestamp() AS ingested_at",
         )
 
     engagement_stream = likes_stream.union(reposts_stream)

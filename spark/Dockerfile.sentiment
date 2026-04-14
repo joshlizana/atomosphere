@@ -26,7 +26,7 @@ RUN groupadd -r spark && useradd -r -g spark -m spark
 # Copy Spark distribution from official image
 COPY --from=spark-base /opt/spark /opt/spark
 
-# Iceberg + Polaris REST catalog + S3/RustFS connectivity
+# Iceberg + Polaris REST catalog + S3/SeaweedFS connectivity
 ENV ICEBERG_VERSION=1.10.1
 ENV SPARK_ICEBERG_COMPAT=4.0
 ENV SCALA_VERSION=2.13
@@ -57,6 +57,7 @@ COPY unified.py /opt/spark/work-dir/spark/unified.py
 COPY sources/ /opt/spark/work-dir/spark/sources/
 COPY ingestion/ /opt/spark/work-dir/spark/ingestion/
 COPY transforms/ /opt/spark/work-dir/spark/transforms/
+COPY serving/ /opt/spark/work-dir/spark/serving/
 
 RUN mkdir -p /opt/spark/checkpoints && chown spark:spark /opt/spark/checkpoints
 

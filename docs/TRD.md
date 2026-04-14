@@ -196,7 +196,7 @@ The mart layer lives as ClickHouse views over Iceberg, not as materialized Icebe
 | FR-24 | Critical | Initialization is idempotent | The init container creates SeaweedFS buckets, Polaris warehouse, and Iceberg namespaces only if they do not already exist. Subsequent runs are safe |
 | FR-25 | Critical | Each Spark application creates its own tables on first write | `CREATE TABLE IF NOT EXISTS` semantics ensure tables are created automatically without manual DDL |
 | FR-26 | High | All containers use health checks for dependency ordering | Docker Compose `depends_on` with `condition: service_healthy` enforces the startup chain |
-| FR-28 | High | A Python monitor watches pipeline health, data quality, and Iceberg table hygiene | `scripts/heimdall/` implements a decorator-based check registry organized in a **three-layer gated model** — L1 machine health (containers, host saturation, HTTP probes), L2 operational fidelity (Spark streaming metrics via Dropwizard `/metrics/json`), L3 data fidelity (DuckDB-embedded Iceberg reads, deferred to a follow-up). Higher layers short-circuit when a lower layer breaches. State lives in a DuckDB `:memory:` store backed by a JSONL WAL at `logs/heimdall-wal.jsonl` (crash-recoverable); alerts log to `logs/alerts.log`. Invoked via `make heimdall` / `make heimdall-run` / `make heimdall-watch` |
+| FR-28 | High | A Python monitor watches pipeline health, data quality, and Iceberg table hygiene | `scripts/heimdall/` implements a decorator-based check registry organized in a **three-layer gated model** — L1 machine health (containers, host saturation, HTTP probes), L2 operational health (Spark streaming metrics via Dropwizard `/metrics/json`), L3 data fidelity (DuckDB-embedded Iceberg reads, deferred to a follow-up). Higher layers short-circuit when a lower layer breaches. State lives in a DuckDB `:memory:` store backed by a JSONL WAL at `logs/heimdall-wal.jsonl` (crash-recoverable); alerts log to `logs/alerts.log`. Invoked via `make heimdall` / `make heimdall-run` / `make heimdall-watch` |
 
 ---
 
@@ -572,7 +572,6 @@ Formal test suites are planned for a post-MVP phase. During development, validat
 | `make clean` | `docker compose down -v --remove-orphans` | Stop and remove all volumes (full reset) |
 | `make smoke-test` | `scripts/smoke-test.sh --wait` | Run acceptance suite, waiting for data to flow |
 | `make reset-checkpoint LAYER=<layer>` | `scripts/reset-checkpoint.sh <layer>` | Wipe a layer's Spark checkpoint state |
-| `make replay TIME=<timestamp>` | `scripts/replay.sh <timestamp>` | Replay Jetstream from a given cursor |
 
 ---
 
@@ -612,7 +611,7 @@ The Python monitor in `scripts/heimdall/` is the primary observability surface f
 | Layer | Scope | Modules | Gating |
 |---|---|---|---|
 | **L1** machine health | Container state, host saturation (CPU/memory/disk/GPU), HTTP liveness probes for Polaris, ClickHouse, Grafana, Spark UI | `checks/containers.py`, `checks/saturation.py`, `checks/probes.py` | Always runs |
-| **L2** operational fidelity | Structured Streaming input rate, query state, end-to-end latency — sourced from the Spark driver's Dropwizard `MetricsServlet` at `/metrics/json` (gated by `spark.sql.streaming.metricsEnabled=true` in `spark/conf/spark-defaults.conf`) | `checks/spark.py` | Skipped if any L1 check breaches |
+| **L2** operational health | Structured Streaming input rate, query state, end-to-end latency — sourced from the Spark driver's Dropwizard `MetricsServlet` at `/metrics/json` (gated by `spark.sql.streaming.metricsEnabled=true` in `spark/conf/spark-defaults.conf`) | `checks/spark.py` | Skipped if any L1 check breaches |
 | **L3** data fidelity | Iceberg table hygiene + data-quality invariants via a DuckDB-embedded reader attached to Polaris | `checks/data_quality.py`, `checks/iceberg_health.py` (on disk, unimported) | Deferred to a follow-up plan; will be skipped if any L1 or L2 check breaches |
 
 Each check declares its layer via `@check(name, layer=...)` in the decorator. The runner orders checks by layer, tracks live breaches per cycle, and emits `skip` with `"layer gate: L{n} breached"` for higher-layer checks when a lower layer is red — so data-fidelity checks never run against a broken stack.
@@ -659,5 +658,5 @@ The Pipeline Health dashboard row (Row 5) visualizes the metrics from the `mart_
 | **SeaweedFS** | An Apache 2.0-licensed, S3-API-compatible object storage server |
 | **Structured Streaming** | Spark's stream processing engine that treats live data streams as continuously appended tables |
 | **ClickHouse** | Open-source columnar OLAP database; the query-serving layer (FR-29) that reads Iceberg via its `DataLakeCatalog` engine and feeds Grafana through the native datasource. Service in place; datasource wiring in progress |
-| **Heimdall** | The Python monitor (FR-28) in `scripts/heimdall/` — a decorator-based check registry organized in a three-layer gated model (L1 machine health → L2 operational fidelity → L3 data fidelity). State in DuckDB `:memory:` backed by a JSONL WAL. L1+L2 shipping under CLH-206; L3 deferred to a follow-up plan |
+| **Heimdall** | The Python monitor (FR-28) in `scripts/heimdall/` — a decorator-based check registry organized in a three-layer gated model (L1 machine health → L2 operational health → L3 data fidelity). State in DuckDB `:memory:` backed by a JSONL WAL. L1+L2 shipping under CLH-206; L3 deferred to a follow-up plan |
 | **XLM-RoBERTa** | A cross-lingual transformer model trained on 100+ languages, used for multilingual sentiment classification |

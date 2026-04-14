@@ -11,6 +11,7 @@ SELECT
     get_json_object(raw_json, '$.commit.record.subject.uri')                AS subject_uri,
     get_json_object(raw_json, '$.commit.record.subject.cid')                AS subject_cid,
     CAST(get_json_object(raw_json, '$.commit.record.createdAt') AS TIMESTAMP) AS created_at,
-    get_json_object(raw_json, '$.commit.record.via') IS NOT NULL            AS has_via
+    get_json_object(raw_json, '$.commit.record.via') IS NOT NULL            AS has_via,
+    current_timestamp()                                                     AS ingested_at
 FROM {source}
 WHERE collection = 'app.bsky.feed.like'

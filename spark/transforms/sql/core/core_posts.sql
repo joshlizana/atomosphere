@@ -31,6 +31,7 @@ SELECT
     -- Mention DIDs from facets
     regexp_extract_all(COALESCE(facets_json, ''), '"\\$type"\\s*:\\s*"app\\.bsky\\.richtext\\.facet#mention"\\s*,\\s*"did"\\s*:\\s*"(did:[^"]+)"', 1) AS mention_dids,
     -- Link URLs from facets
-    regexp_extract_all(COALESCE(facets_json, ''), '"\\$type"\\s*:\\s*"app\\.bsky\\.richtext\\.facet#link"\\s*,\\s*"uri"\\s*:\\s*"([^"]+)"', 1) AS link_urls
+    regexp_extract_all(COALESCE(facets_json, ''), '"\\$type"\\s*:\\s*"app\\.bsky\\.richtext\\.facet#link"\\s*,\\s*"uri"\\s*:\\s*"([^"]+)"', 1) AS link_urls,
+    current_timestamp()                                                     AS ingested_at
 FROM {source}
 WHERE operation = 'create'

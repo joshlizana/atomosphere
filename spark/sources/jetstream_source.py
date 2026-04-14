@@ -12,7 +12,6 @@ References:
 
 import json
 import logging
-import os
 import threading
 import time
 from collections import deque
@@ -20,6 +19,7 @@ from collections import deque
 from pyspark.sql.datasource import DataSource, SimpleDataSourceStreamReader
 from pyspark.sql.types import LongType, StringType, StructField, StructType, TimestampType
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("jetstream_source")
 
 # Jetstream public endpoints for failover (TRD §8.1)
@@ -87,7 +87,6 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         self._buffer = deque()
         self._buffer_lock = threading.Lock()
         self._latest_time_us = 0
-        self._committed_time_us = 0
         self._ws = None
         self._ws_thread = None
         self._running = False
@@ -117,12 +116,8 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         self._connect()
 
     def _get_connect_url(self):
-        """Build WebSocket URL with cursor for reconnection (FR-04)."""
-        endpoint = JETSTREAM_ENDPOINTS[self._endpoint_index]
-        if self._committed_time_us > 0:
-            cursor = self._committed_time_us - 5_000_000
-            return f"{endpoint}?cursor={cursor}"
-        return endpoint
+        """Return the current endpoint URL. Live-only — no cursor rewind."""
+        return JETSTREAM_ENDPOINTS[self._endpoint_index]
 
     def _rotate_endpoint(self):
         """Rotate to the next Jetstream endpoint for failover (FR-04)."""
@@ -167,7 +162,16 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         import websocket
 
         self._running = True
+        # Guards against on_error + on_close both firing _reconnect for the
+        # same drop. Reset on each connect so future drops can schedule.
+        self._reconnect_fired = False
         url = self._get_connect_url()
+
+        def _fire_reconnect():
+            if self._reconnect_fired:
+                return
+            self._reconnect_fired = True
+            self._reconnect()
 
         def on_message(ws, message):
             try:
@@ -190,11 +194,16 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
                     self._latest_time_us = time_us
 
         def on_error(ws, error):
+            # websocket-client sometimes returns from run_forever after
+            # on_error without ever calling on_close (observed with
+            # "Connection to remote host was lost" on abrupt socket
+            # loss), so we have to schedule the reconnect here too.
             logger.error("WebSocket error: %s", error)
+            _fire_reconnect()
 
         def on_close(ws, close_status_code, close_msg):
             logger.info("WebSocket closed: %s %s", close_status_code, close_msg)
-            self._reconnect()
+            _fire_reconnect()
 
         def on_open(ws):
             logger.info("Connected to Jetstream: %s", url)
@@ -210,21 +219,29 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
             on_open=on_open,
         )
 
-        self._ws_thread = threading.Thread(
-            target=self._ws.run_forever,
-            daemon=True,
-        )
+        # ping_interval/ping_timeout keep the socket alive through server-
+        # side idle timeouts (observed: Jetstream closed the connection ~60s
+        # after connect when no pings were sent). Client sends a ping every
+        # 20s and expects a pong within 10s.
+        def _run():
+            try:
+                self._ws.run_forever(ping_interval=20, ping_timeout=10)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("WebSocket thread crashed: %s", exc)
+            finally:
+                # Belt-and-suspenders: catches every exit path —
+                # exceptions, clean returns, and the edge cases where
+                # on_error/on_close never fired. _fire_reconnect is
+                # idempotent via _reconnect_fired, so a late call after
+                # on_close already scheduled a reconnect is a no-op.
+                if self._running:
+                    _fire_reconnect()
+
+        self._ws_thread = threading.Thread(target=_run, daemon=True)
         self._ws_thread.start()
 
     def initialOffset(self):
-        """Return current time in microseconds as starting offset (FR-03).
-
-        If JETSTREAM_CURSOR env var is set, use it as the starting offset
-        to support replay/backfill scenarios.
-        """
-        cursor = os.environ.get("JETSTREAM_CURSOR")
-        if cursor:
-            return {"time_us": int(cursor)}
+        """Return current time in microseconds as starting offset (FR-03)."""
         return {"time_us": int(time.time() * 1_000_000)}
 
     def read(self, start):
@@ -269,8 +286,8 @@ class JetstreamStreamReader(SimpleDataSourceStreamReader):
         return iter([])
 
     def commit(self, end):
-        """Persist the committed offset for cursor-based reconnection (FR-03)."""
-        self._committed_time_us = end["time_us"]
+        """No-op — live-only reader does not persist offsets across reconnects."""
+        pass
 
     def stop(self):
         """Stop the WebSocket connection and release resources."""

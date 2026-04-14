@@ -2,7 +2,7 @@ FROM grafana/grafana-oss:latest
 
 USER root
 RUN mkdir -p /opt/grafana/plugins && \
-    grafana cli --pluginsDir /opt/grafana/plugins plugins install yesoreyeram-infinity-datasource && \
+    grafana cli --pluginsDir /opt/grafana/plugins plugins install grafana-clickhouse-datasource && \
     chown -R grafana:root /opt/grafana
 USER grafana
 

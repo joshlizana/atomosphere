@@ -54,7 +54,8 @@ CREATE_TABLE_SQLS = {
             reply_parent_uri STRING,
             facets_json     STRING,
             labels_json     STRING,
-            tags            ARRAY<STRING>
+            tags            ARRAY<STRING>,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -68,7 +69,8 @@ CREATE_TABLE_SQLS = {
             subject_uri     STRING,
             subject_cid     STRING,
             created_at      TIMESTAMP,
-            has_via         BOOLEAN
+            has_via         BOOLEAN,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -81,7 +83,8 @@ CREATE_TABLE_SQLS = {
             operation       STRING,
             subject_uri     STRING,
             subject_cid     STRING,
-            created_at      TIMESTAMP
+            created_at      TIMESTAMP,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -93,7 +96,8 @@ CREATE_TABLE_SQLS = {
             rkey            STRING,
             operation       STRING,
             subject_did     STRING,
-            created_at      TIMESTAMP
+            created_at      TIMESTAMP,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -105,7 +109,8 @@ CREATE_TABLE_SQLS = {
             rkey            STRING,
             operation       STRING,
             subject_did     STRING,
-            created_at      TIMESTAMP
+            created_at      TIMESTAMP,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,
@@ -117,7 +122,8 @@ CREATE_TABLE_SQLS = {
             rkey            STRING,
             operation       STRING,
             display_name    STRING,
-            description     STRING
+            description     STRING,
+            ingested_at     TIMESTAMP   NOT NULL
         ) USING iceberg
         PARTITIONED BY (days(event_time))
     """,

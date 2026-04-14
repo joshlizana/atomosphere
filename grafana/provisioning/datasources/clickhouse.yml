@@ -1,0 +1,24 @@
+apiVersion: 1
+
+deleteDatasources:
+  - name: Atmosphere
+    orgId: 1
+  - name: infinity-atmosphere
+    orgId: 1
+
+datasources:
+  - name: Atmosphere
+    uid: clickhouse-atmosphere
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      host: clickhouse
+      port: 8123
+      protocol: http
+      secure: false
+      username: ${CLICKHOUSE_READER_USER}
+      defaultDatabase: atmosphere
+    secureJsonData:
+      password: ${CLICKHOUSE_READER_PASSWORD}

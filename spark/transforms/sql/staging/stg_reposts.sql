@@ -10,6 +10,7 @@ SELECT
     get_json_object(raw_json, '$.commit.operation')                         AS operation,
     get_json_object(raw_json, '$.commit.record.subject.uri')                AS subject_uri,
     get_json_object(raw_json, '$.commit.record.subject.cid')                AS subject_cid,
-    CAST(get_json_object(raw_json, '$.commit.record.createdAt') AS TIMESTAMP) AS created_at
+    CAST(get_json_object(raw_json, '$.commit.record.createdAt') AS TIMESTAMP) AS created_at,
+    current_timestamp()                                                     AS ingested_at
 FROM {source}
 WHERE collection = 'app.bsky.feed.repost'

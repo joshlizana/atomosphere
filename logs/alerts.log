@@ -1,0 +1,474 @@
+[2026-04-12 05:34:11] ALERT: ESCALATE: grafana has restarted 3+ times in 300s — manual intervention needed
+[2026-04-12 05:35:33] ALERT: auto-triggered compaction for 17 table(s)
+[2026-04-12 05:35:45] ALERT: ESCALATE: grafana has restarted 3+ times in 300s — manual intervention needed
+[2026-04-12 05:36:43] ALERT: auto-triggered compaction for 17 table(s)
+[2026-04-12 05:39:42] ALERT: ESCALATE: grafana has restarted 3+ times in 300s — manual intervention needed
+{"check":"containers.spark-unified.state","kind":"BREACH","message":"spark-unified status=created","metric_key":null,"status":"breach","ts":1776054344,"value":"created"}
+{"check":"containers.grafana.state","kind":"BREACH","message":"grafana status=created","metric_key":null,"status":"breach","ts":1776054344,"value":"created"}
+{"check":"containers.spark-unified.state","from":"breach","kind":"RECOVERY","message":"spark-unified running","metric_key":null,"ts":1776055170}
+{"check":"containers.grafana.state","from":"breach","kind":"RECOVERY","message":"grafana running","metric_key":null,"ts":1776055171}
+{"check":"quality.raw_events.null_did_rate","kind":"BREACH","message":"engine failure: When reading information for key 'raw/raw_events/metadata/snap-4840116721437991167-1-eb201dda-8204-4210-9dbc-afdef87d2a17.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":null,"status":"error","ts":1776055314,"value":null}
+{"check":"iceberg.file_count.atmosphere.raw.raw_events","kind":"BREACH","message":"engine failure: When reading information for key 'raw/raw_events/metadata/snap-4840116721437991167-1-eb201dda-8204-4210-9dbc-afdef87d2a17.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.raw.raw_events","status":"error","ts":1776055324,"value":null}
+{"check":"iceberg.file_count.atmosphere.core.core_posts","kind":"BREACH","message":"engine failure: When reading information for key 'core/core_posts/metadata/snap-2930588294071648058-1-043e644e-8be3-44f5-9541-7b78f3eec862.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.core.core_posts","status":"error","ts":1776055335,"value":null}
+{"check":"iceberg.file_count.atmosphere.mart.mart_trending_hashtags","kind":"BREACH","message":"engine failure: When reading information for key 'mart/mart_trending_hashtags/metadata/snap-6464530501533276652-1-39332417-b106-40e5-87f1-799caada85a8.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.mart.mart_trending_hashtags","status":"error","ts":1776055347,"value":null}
+{"check":"iceberg.avg_file_kb.atmosphere.raw.raw_events","kind":"BREACH","message":"engine failure: When reading information for key 'raw/raw_events/metadata/snap-4840116721437991167-1-eb201dda-8204-4210-9dbc-afdef87d2a17.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.raw.raw_events","status":"error","ts":1776055357,"value":null}
+{"check":"iceberg.avg_file_kb.atmosphere.core.core_posts","kind":"BREACH","message":"engine failure: When reading information for key 'core/core_posts/metadata/snap-2930588294071648058-1-043e644e-8be3-44f5-9541-7b78f3eec862.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.core.core_posts","status":"error","ts":1776055367,"value":null}
+{"check":"iceberg.avg_file_kb.atmosphere.mart.mart_trending_hashtags","kind":"BREACH","message":"engine failure: When reading information for key 'mart/mart_trending_hashtags/metadata/snap-6464530501533276652-1-39332417-b106-40e5-87f1-799caada85a8.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3103 milliseconds","metric_key":"atmosphere.mart.mart_trending_hashtags","status":"error","ts":1776055377,"value":null}
+{"check":"iceberg.small_file_ratio.atmosphere.raw.raw_events","kind":"BREACH","message":"engine failure: When reading information for key 'raw/raw_events/metadata/snap-4840116721437991167-1-eb201dda-8204-4210-9dbc-afdef87d2a17.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.raw.raw_events","status":"error","ts":1776055389,"value":null}
+{"check":"iceberg.small_file_ratio.atmosphere.core.core_posts","kind":"BREACH","message":"engine failure: When reading information for key 'core/core_posts/metadata/snap-2930588294071648058-1-043e644e-8be3-44f5-9541-7b78f3eec862.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.core.core_posts","status":"error","ts":1776055400,"value":null}
+{"check":"iceberg.small_file_ratio.atmosphere.mart.mart_trending_hashtags","kind":"BREACH","message":"engine failure: When reading information for key 'mart/mart_trending_hashtags/metadata/snap-6464530501533276652-1-39332417-b106-40e5-87f1-799caada85a8.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.mart.mart_trending_hashtags","status":"error","ts":1776055410,"value":null}
+{"check":"iceberg.snapshot_count.atmosphere.raw.raw_events","kind":"BREACH","message":"engine failure: When reading information for key 'raw/raw_events/metadata/snap-4840116721437991167-1-eb201dda-8204-4210-9dbc-afdef87d2a17.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.raw.raw_events","status":"error","ts":1776055422,"value":null}
+{"check":"iceberg.snapshot_count.atmosphere.core.core_posts","kind":"BREACH","message":"engine failure: When reading information for key 'core/core_posts/metadata/snap-2930588294071648058-1-043e644e-8be3-44f5-9541-7b78f3eec862.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.core.core_posts","status":"error","ts":1776055433,"value":null}
+{"check":"iceberg.snapshot_count.atmosphere.mart.mart_trending_hashtags","kind":"BREACH","message":"engine failure: When reading information for key 'mart/mart_trending_hashtags/metadata/snap-6464530501533276652-1-39332417-b106-40e5-87f1-799caada85a8.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.mart.mart_trending_hashtags","status":"error","ts":1776055444,"value":null}
+{"check":"iceberg.manifest_count.atmosphere.raw.raw_events","kind":"BREACH","message":"engine failure: When reading information for key 'raw/raw_events/metadata/snap-4840116721437991167-1-eb201dda-8204-4210-9dbc-afdef87d2a17.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.raw.raw_events","status":"error","ts":1776055455,"value":null}
+{"check":"iceberg.manifest_count.atmosphere.core.core_posts","kind":"BREACH","message":"engine failure: When reading information for key 'core/core_posts/metadata/snap-2930588294071648058-1-043e644e-8be3-44f5-9541-7b78f3eec862.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.core.core_posts","status":"error","ts":1776055465,"value":null}
+{"check":"iceberg.manifest_count.atmosphere.mart.mart_trending_hashtags","kind":"BREACH","message":"engine failure: When reading information for key 'mart/mart_trending_hashtags/metadata/snap-6464530501533276652-1-39332417-b106-40e5-87f1-799caada85a8.avro' in bucket 'warehouse': AWS Error NETWORK_CONNECTION during HeadObject operation: curlCode: 28, Timeout was reached; Details: Resolving timed out after 3100 milliseconds","metric_key":"atmosphere.mart.mart_trending_hashtags","status":"error","ts":1776055475,"value":null}
+{"check":"traffic.jetstream_input_rps","kind":"BREACH","message":"ingest query not found in Spark progress","metric_key":null,"status":"error","ts":1776055476,"value":null}
+{"check":"containers.grafana.state","from":"breach","kind":"RECOVERY","message":"grafana running","metric_key":null,"ts":1776083381}
+{"check":"probes.grafana.http","from":"breach","kind":"RECOVERY","message":"grafana /api/health 200","metric_key":null,"ts":1776083381}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 96.95% > 85%","metric_key":null,"status":"breach","ts":1776084116,"value":0.9695490056818182}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","kind":"BREACH","message":"gpu util 5min avg 100.0% > 95.0%","metric_key":null,"status":"breach","ts":1776085743,"value":100.0}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 21132.1s > 15.0s","metric_key":null,"status":"breach","ts":1776085744,"value":21132.088793}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 88.27% > 85%","metric_key":null,"status":"breach","ts":1776085744,"value":0.8827237215909091}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu util 5min avg 94.0%","metric_key":null,"ts":1776085906}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu mem 72.00%","metric_key":null,"ts":1776085907}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 3510.9s > 15.0s","metric_key":null,"status":"breach","ts":1776086123,"value":3510.90359}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu mem 5.76%","metric_key":null,"ts":1776086453}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","kind":"BREACH","message":"duckdb error: BinderException: Binder Error: Referenced column \"event_time\" not found in FROM clause!\nCandidate bindings: \"ingested_at\", \"operation\", \"collection\"\n\nLINE 5:               AND event_time IS NOT NULL\n                          ^","metric_key":null,"status":"error","ts":1776086570,"value":null}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","kind":"BREACH","message":"gpu util 5min avg 100.0% > 95.0%","metric_key":null,"status":"breach","ts":1776086570,"value":100.0}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 3958.1s > 15.0s","metric_key":null,"status":"breach","ts":1776086570,"value":3958.103318}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 89.34% > 85%","metric_key":null,"status":"breach","ts":1776086570,"value":0.8933771306818182}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 0.0 < 50.0","metric_key":null,"status":"breach","ts":1776086580,"value":0.0}
+{"check":"containers.grafana.state","emit_class":"silent","kind":"BREACH","message":"docker error: error: no such object: grafana","metric_key":null,"status":"error","ts":1776086605,"value":null}
+{"check":"containers.spark.state","emit_class":"silent","kind":"BREACH","message":"docker error: error: no such object: spark","metric_key":null,"status":"error","ts":1776086606,"value":null}
+{"check":"probes.grafana.http","emit_class":"silent","kind":"BREACH","message":"grafana unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776086606,"value":"ConnectionError"}
+{"check":"probes.spark_ui.http","emit_class":"silent","kind":"BREACH","message":"spark UI unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776086606,"value":"ConnectionError"}
+{"check":"containers.clickhouse.state","emit_class":"silent","kind":"BREACH","message":"docker error: error: no such object: clickhouse","metric_key":null,"status":"error","ts":1776086610,"value":null}
+{"check":"containers.polaris.state","emit_class":"silent","kind":"BREACH","message":"docker error: error: no such object: polaris","metric_key":null,"status":"error","ts":1776086610,"value":null}
+{"check":"containers.postgres.state","emit_class":"silent","kind":"BREACH","message":"docker error: error: no such object: postgres","metric_key":null,"status":"error","ts":1776086611,"value":null}
+{"check":"containers.seaweedfs.state","emit_class":"silent","kind":"BREACH","message":"docker error: error: no such object: seaweedfs","metric_key":null,"status":"error","ts":1776086611,"value":null}
+{"check":"probes.clickhouse.http","emit_class":"silent","kind":"BREACH","message":"clickhouse unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776086611,"value":"ConnectionError"}
+{"check":"probes.polaris.http","emit_class":"silent","kind":"BREACH","message":"polaris unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776086611,"value":"ConnectionError"}
+{"check":"containers.postgres.state","emit_class":"silent","from":"error","kind":"RECOVERY","message":"postgres running","metric_key":null,"ts":1776086625}
+{"check":"containers.seaweedfs.state","emit_class":"silent","from":"error","kind":"RECOVERY","message":"seaweedfs running","metric_key":null,"ts":1776086625}
+{"check":"containers.polaris.state","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris running","metric_key":null,"ts":1776086635}
+{"check":"probes.polaris.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris http 401","metric_key":null,"ts":1776086635}
+{"check":"containers.clickhouse.state","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse running","metric_key":null,"ts":1776086639}
+{"check":"containers.grafana.state","emit_class":"silent","kind":"BREACH","message":"grafana status=created","metric_key":null,"status":"breach","ts":1776086639,"value":"created"}
+{"check":"containers.spark.state","emit_class":"silent","kind":"BREACH","message":"spark status=created","metric_key":null,"status":"breach","ts":1776086639,"value":"created"}
+{"check":"probes.clickhouse.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse ping Ok","metric_key":null,"ts":1776086639}
+{"check":"probes.grafana.http","emit_class":"silent","kind":"BREACH","message":"grafana unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776086639,"value":"ConnectionError"}
+{"check":"probes.spark_ui.http","emit_class":"silent","kind":"BREACH","message":"spark UI unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776086639,"value":"ConnectionError"}
+{"check":"containers.clickhouse.state","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse running","metric_key":null,"ts":1776086640}
+{"check":"probes.clickhouse.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse ping Ok","metric_key":null,"ts":1776086640}
+{"check":"containers.grafana.state","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"grafana running","metric_key":null,"ts":1776086650}
+{"check":"containers.spark.state","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"spark running","metric_key":null,"ts":1776086650}
+{"check":"probes.grafana.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"grafana /api/health 200","metric_key":null,"ts":1776086650}
+{"check":"probes.spark_ui.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"spark UI 200","metric_key":null,"ts":1776086651}
+{"check":"latency.jetstream_to_raw","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"latency 0.0s","metric_key":null,"ts":1776086661}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","kind":"BREACH","message":"duckdb error: BinderException: Binder Error: Referenced column \"event_time\" not found in FROM clause!\nCandidate bindings: \"ingested_at\", \"operation\", \"collection\"\n\nLINE 5:               AND event_time IS NOT NULL\n                          ^","metric_key":null,"status":"error","ts":1776086661,"value":null}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 4049.8s > 15.0s","metric_key":null,"status":"breach","ts":1776086661,"value":4049.773292}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 0.0 < 50.0","metric_key":null,"status":"breach","ts":1776086664,"value":0.0}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 96.10% > 85%","metric_key":null,"status":"breach","ts":1776086786,"value":0.9610262784090909}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu mem 76.46%","metric_key":null,"ts":1776086856}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu util 5min avg 91.0%","metric_key":null,"ts":1776086871}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 86.13% > 85%","metric_key":null,"status":"breach","ts":1776086871,"value":0.861328125}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu mem 39.80%","metric_key":null,"ts":1776087006}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 95.69% > 85%","metric_key":null,"status":"breach","ts":1776087026,"value":0.9569424715909091}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu util 5min avg 90.7%","metric_key":null,"ts":1776087032}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 3564.4","metric_key":null,"ts":1776087057}
+{"check":"probes.spark_ui.http","emit_class":"silent","kind":"BREACH","message":"spark UI unreachable: ConnectionError","metric_key":null,"status":"breach","ts":1776087246,"value":"ConnectionError"}
+{"check":"containers.spark.state","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"spark running","metric_key":null,"ts":1776087250}
+{"check":"probes.spark_ui.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"spark UI 200","metric_key":null,"ts":1776087257}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 4661.2s > 15.0s","metric_key":null,"status":"breach","ts":1776087273,"value":4661.198593}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 0.0 < 50.0","metric_key":null,"status":"breach","ts":1776087275,"value":0.0}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 434.3","metric_key":null,"ts":1776087528}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 91.97% > 85%","metric_key":null,"status":"breach","ts":1776087535,"value":0.9196555397727273}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu mem 38.40%","metric_key":null,"ts":1776087600}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","kind":"BREACH","message":"gpu mem 96.44% > 85%","metric_key":null,"status":"breach","ts":1776087631,"value":0.9643998579545454}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","kind":"BREACH","message":"gpu util 5min avg 100.0% > 95.0%","metric_key":null,"status":"breach","ts":1776088481,"value":100.0}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","kind":"BREACH","message":"clickhouse mem 93.97% > 80%","metric_key":null,"status":"breach","ts":1776088483,"value":0.93975}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 53.92%","metric_key":null,"ts":1776088487}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 80.84% > 80%","metric_key":null,"status":"breach","ts":1776088515,"value":0.8083984375}
+{"check":"latency.sentiment_gpu_util","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu util 5min avg 2.0%","metric_key":null,"ts":1776089858}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment lag 0.0s","metric_key":null,"ts":1776089858}
+{"check":"saturation.gpu_mem_used_ratio","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"gpu mem 5.97%","metric_key":null,"ts":1776089858}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse mem 12.16%","metric_key":null,"ts":1776089859}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"seaweedfs mem 33.52%","metric_key":null,"ts":1776089867}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","kind":"BREACH","message":"ingest lag 573.1s > 15.0s","metric_key":null,"status":"breach","ts":1776089871,"value":573.0977819103007}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 1719.3","metric_key":null,"ts":1776089883}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"ingest lag 7.6s","metric_key":null,"ts":1776089976}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 452.3s > 15.0s","metric_key":null,"status":"breach","ts":1776090051,"value":452.306498}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","kind":"BREACH","message":"ingest lag 1357.3s > 15.0s","metric_key":null,"status":"breach","ts":1776093282,"value":1357.348608874871}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 86.59% > 80%","metric_key":null,"status":"breach","ts":1776093292,"value":0.86591796875}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 85.36% > 80%","metric_key":null,"status":"breach","ts":1776093378,"value":0.85361328125}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"seaweedfs mem 79.03%","metric_key":null,"ts":1776093397}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 50.37%","metric_key":null,"ts":1776093409}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"no rows in window","metric_key":null,"ts":1776093433}
+{"check":"latency.jetstream_to_raw","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"latency 0.0s","metric_key":null,"ts":1776093446}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 0.0 < 50.0","metric_key":null,"status":"breach","ts":1776093460,"value":0.0}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 81.82% > 80%","metric_key":null,"status":"breach","ts":1776093658,"value":0.8181640625}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"seaweedfs mem 77.21%","metric_key":null,"ts":1776095987}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 4269.7","metric_key":null,"ts":1776096185}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","kind":"BREACH","message":"ingest lag 2875.2s > 15.0s","metric_key":null,"status":"breach","ts":1776096202,"value":2875.189710146116}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 358.2","metric_key":null,"ts":1776096243}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 49.08%","metric_key":null,"ts":1776096343}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 86.76% > 80%","metric_key":null,"status":"breach","ts":1776096447,"value":0.867578125}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 48.15%","metric_key":null,"ts":1776096463}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 82.81% > 80%","metric_key":null,"status":"breach","ts":1776096557,"value":0.828125}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 87.76% > 80%","metric_key":null,"status":"breach","ts":1776096567,"value":0.87763671875}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 50.38%","metric_key":null,"ts":1776096583}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 84.92% > 80%","metric_key":null,"status":"breach","ts":1776096673,"value":0.84921875}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"ingest lag 2.0s","metric_key":null,"ts":1776096681}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 47.83%","metric_key":null,"ts":1776096687}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 88.82% > 80%","metric_key":null,"status":"breach","ts":1776096792,"value":0.88818359375}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 55.34%","metric_key":null,"ts":1776096807}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"seaweedfs mem 79.77%","metric_key":null,"ts":1776096841}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 87.91% > 80%","metric_key":null,"status":"breach","ts":1776096882,"value":0.8791015625}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 51.32%","metric_key":null,"ts":1776096897}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 48.27%","metric_key":null,"ts":1776096987}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 90.69% > 80%","metric_key":null,"status":"breach","ts":1776097077,"value":0.90693359375}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 54.30%","metric_key":null,"ts":1776097092}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment lag 0.0s","metric_key":null,"ts":1776097222}
+{"check":"latency.raw_ingest_lag","emit_class":"silent","kind":"BREACH","message":"ingest lag 86361.8s > 15.0s","metric_key":null,"status":"breach","ts":1776097235,"value":86361.82964640498}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 333.6","metric_key":null,"ts":1776097246}
+{"check":"latency.sentiment_table_lag","emit_class":"silent","kind":"BREACH","message":"sentiment lag 86274.4s > 15.0s","metric_key":null,"status":"breach","ts":1776097400,"value":86274.387266}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 82.20% > 80%","metric_key":null,"status":"breach","ts":1776097731,"value":0.82197265625}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 52.17%","metric_key":null,"ts":1776097817}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"seaweedfs mem 79.69%","metric_key":null,"ts":1776097821}
+{"check":"latency.pipeline.post","emit_class":"silent","kind":"BREACH","message":"post avg lag 290.9s > 60.0s","metric_key":null,"status":"breach","ts":1776099122,"value":290.906631912}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 84.74% > 80%","metric_key":null,"status":"breach","ts":1776099129,"value":0.84736328125}
+{"check":"latency.pipeline.profile","emit_class":"silent","kind":"BREACH","message":"profile avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776099142,"value":10.058115139999998}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 52.72%","metric_key":null,"ts":1776099168}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776099180,"value":10.025064306000008}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776099181}
+{"check":"latency.pipeline.profile","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"profile avg lag 9.8s","metric_key":null,"ts":1776099182}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 8.1s","metric_key":null,"ts":1776099183}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.8s","metric_key":null,"ts":1776099201}
+{"check":"latency.pipeline.profile","emit_class":"silent","kind":"BREACH","message":"profile avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776099283,"value":10.149584722000002}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776099322,"value":10.02243135500001}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 10.4s > 10.0s","metric_key":null,"status":"breach","ts":1776099343,"value":10.413160999000004}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776099346}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 83.61% > 80%","metric_key":null,"status":"breach","ts":1776099386,"value":0.8361328125}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 19.2s > 10.0s","metric_key":null,"status":"breach","ts":1776099396,"value":19.170894814}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 25.1s > 10.0s","metric_key":null,"status":"breach","ts":1776099401,"value":25.076668793999996}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 20.8s > 10.0s","metric_key":null,"status":"breach","ts":1776099406,"value":20.791862828999996}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","kind":"BREACH","message":"clickhouse mem 94.08% > 80%","metric_key":null,"status":"breach","ts":1776099408,"value":0.94075}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 6.3s","metric_key":null,"ts":1776099471}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776099472}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776099475}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 54.24%","metric_key":null,"ts":1776099481}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 8.5s","metric_key":null,"ts":1776099510}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.5s","metric_key":null,"ts":1776099511}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.8s","metric_key":null,"ts":1776099572}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 28360.1s > 10.0s","metric_key":null,"status":"breach","ts":1776129175,"value":28360.060574788025}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 12143.3s > 10.0s","metric_key":null,"status":"breach","ts":1776129198,"value":12143.278548576001}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 28358.6s > 10.0s","metric_key":null,"status":"breach","ts":1776129199,"value":28358.583955054997}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 28359.9s > 10.0s","metric_key":null,"status":"breach","ts":1776129206,"value":28359.88627586801}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 0.0 < 50.0","metric_key":null,"status":"breach","ts":1776129218,"value":0.0}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 85.14% > 80%","metric_key":null,"status":"breach","ts":1776129421,"value":0.8513671875}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 47.23%","metric_key":null,"ts":1776129497}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse mem 22.54%","metric_key":null,"ts":1776129624}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 85.7","metric_key":null,"ts":1776129634}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 7.4s","metric_key":null,"ts":1776129664}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776129697}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 10.0s","metric_key":null,"ts":1776129702}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 13.1s > 10.0s","metric_key":null,"status":"breach","ts":1776129747,"value":13.139970198000006}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.5s > 10.0s","metric_key":null,"status":"breach","ts":1776129753,"value":10.457097372000002}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 46.04%","metric_key":null,"ts":1776129758}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 7.2s","metric_key":null,"ts":1776129769}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.5s","metric_key":null,"ts":1776129792}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 10.0s","metric_key":null,"ts":1776129802}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.0s","metric_key":null,"ts":1776129822}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.6s","metric_key":null,"ts":1776129853}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 52.39%","metric_key":null,"ts":1776129858}
+{"check":"latency.pipeline.profile","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"profile avg lag 9.6s","metric_key":null,"ts":1776129900}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776129922,"value":10.02755828}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.0s","metric_key":null,"ts":1776129947}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776129953,"value":10.000657027000004}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 59.00%","metric_key":null,"ts":1776129958}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.2s","metric_key":null,"ts":1776129978}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.0s","metric_key":null,"ts":1776130062}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776130068,"value":10.016652391000001}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.4s","metric_key":null,"ts":1776130117}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 7.9s","metric_key":null,"ts":1776130149}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.0s","metric_key":null,"ts":1776130213}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.1s","metric_key":null,"ts":1776130274}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.6s","metric_key":null,"ts":1776130280}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 872.9","metric_key":null,"ts":1776130350}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 59.70%","metric_key":null,"ts":1776130373}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.1s","metric_key":null,"ts":1776130421}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 65.29%","metric_key":null,"ts":1776130480}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 17.1s > 10.0s","metric_key":null,"status":"breach","ts":1776130505,"value":17.106752858}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 17.5s > 10.0s","metric_key":null,"status":"breach","ts":1776130521,"value":17.469753005922165}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 16.4s > 10.0s","metric_key":null,"status":"breach","ts":1776130548,"value":16.402417161624893}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 60.01%","metric_key":null,"ts":1776130578}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 40.8 < 50.0","metric_key":null,"status":"breach","ts":1776130586,"value":40.8}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 11.0s > 10.0s","metric_key":null,"status":"breach","ts":1776130644,"value":11.00761661285814}
+{"check":"latency.pipeline.profile","emit_class":"silent","kind":"BREACH","message":"profile avg lag 10.8s > 10.0s","metric_key":null,"status":"breach","ts":1776130716,"value":10.763877659574467}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","kind":"BREACH","message":"clickhouse mem 90.80% > 80%","metric_key":null,"status":"breach","ts":1776130726,"value":0.908}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 71.62%","metric_key":null,"ts":1776130730}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 129.5","metric_key":null,"ts":1776130738}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block: no matches yet","metric_key":null,"ts":1776131608}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow: no matches yet","metric_key":null,"ts":1776131608}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like: no matches yet","metric_key":null,"ts":1776131608}
+{"check":"latency.pipeline.post","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"post: no matches yet","metric_key":null,"ts":1776131608}
+{"check":"latency.pipeline.profile","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"profile: no matches yet","metric_key":null,"ts":1776131608}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost: no matches yet","metric_key":null,"ts":1776131608}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse mem 10.80%","metric_key":null,"ts":1776131610}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 34.04%","metric_key":null,"ts":1776131614}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 19.9s > 10.0s","metric_key":null,"status":"breach","ts":1776131637,"value":19.943518393999994}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 20.1s > 10.0s","metric_key":null,"status":"breach","ts":1776131637,"value":20.069662213999997}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 18.2s > 10.0s","metric_key":null,"status":"breach","ts":1776131637,"value":18.224564734}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 647.8","metric_key":null,"ts":1776131649}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 18.2s > 10.0s","metric_key":null,"status":"breach","ts":1776131652,"value":18.245873691747576}
+{"check":"latency.pipeline.profile","emit_class":"silent","kind":"BREACH","message":"profile avg lag 19.8s > 10.0s","metric_key":null,"status":"breach","ts":1776131652,"value":19.819148363636366}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.2s","metric_key":null,"ts":1776131667}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 7.0s","metric_key":null,"ts":1776131667}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 11.9s > 10.0s","metric_key":null,"status":"breach","ts":1776131697,"value":11.908039644}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776131697,"value":10.036591648000003}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776131742}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.8s","metric_key":null,"ts":1776131757}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.6s","metric_key":null,"ts":1776131757}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.8s","metric_key":null,"ts":1776131758}
+{"check":"latency.pipeline.post","emit_class":"silent","kind":"BREACH","message":"post avg lag 83.4s > 60.0s","metric_key":null,"status":"breach","ts":1776131772,"value":83.35554933699996}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.5s","metric_key":null,"ts":1776131802}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776131802}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.8s","metric_key":null,"ts":1776131803}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776131832}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 10.7s > 10.0s","metric_key":null,"status":"breach","ts":1776131847,"value":10.721100456000007}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776131848}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.3s","metric_key":null,"ts":1776131862}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776131863,"value":10.052526663999997}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776131878}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.2s","metric_key":null,"ts":1776131893}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.8s","metric_key":null,"ts":1776131895}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 13.2s > 10.0s","metric_key":null,"status":"breach","ts":1776131912,"value":13.174591464}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 14.8s > 10.0s","metric_key":null,"status":"breach","ts":1776131913,"value":14.820435678999997}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 19.3s > 10.0s","metric_key":null,"status":"breach","ts":1776131932,"value":19.330025578999997}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 13.4s > 10.0s","metric_key":null,"status":"breach","ts":1776131935,"value":13.353886480000005}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.7s","metric_key":null,"ts":1776131993}
+{"check":"latency.pipeline.post","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"post avg lag 20.2s","metric_key":null,"ts":1776132144}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 25.0s > 10.0s","metric_key":null,"status":"breach","ts":1776132299,"value":24.99760090300001}
+{"check":"latency.sentiment.lag","emit_class":"silent","kind":"BREACH","message":"sentiment avg lag 336.0s > 60.0s","metric_key":null,"status":"breach","ts":1776132304,"value":335.9699350150043}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 84.38% > 80%","metric_key":null,"status":"breach","ts":1776132314,"value":0.84375}
+{"check":"saturation.sentiment_backlog","emit_class":"silent","kind":"BREACH","message":"sentiment backlog 1000/1000 (100%) > 50%","metric_key":null,"status":"breach","ts":1776132316,"value":1.0}
+{"check":"probes.spark_ui.http","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"spark UI 200","metric_key":null,"ts":1776132722}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 52.9s > 10.0s","metric_key":null,"status":"breach","ts":1776132769,"value":52.879330997000004}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 143.7s > 10.0s","metric_key":null,"status":"breach","ts":1776132771,"value":143.74369437299995}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 57.6s > 10.0s","metric_key":null,"status":"breach","ts":1776132773,"value":57.63704922000006}
+{"check":"latency.pipeline.post","emit_class":"silent","kind":"BREACH","message":"post avg lag 125.8s > 60.0s","metric_key":null,"status":"breach","ts":1776132775,"value":125.81390513999999}
+{"check":"latency.pipeline.profile","emit_class":"silent","kind":"BREACH","message":"profile avg lag 37.3s > 10.0s","metric_key":null,"status":"breach","ts":1776132777,"value":37.274524361999994}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 60.1s > 10.0s","metric_key":null,"status":"breach","ts":1776132780,"value":60.05423520999999}
+{"check":"latency.sentiment.lag","emit_class":"silent","kind":"BREACH","message":"sentiment avg lag 470.2s > 60.0s","metric_key":null,"status":"breach","ts":1776132780,"value":470.20418800000306}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","kind":"BREACH","message":"clickhouse mem 92.42% > 80%","metric_key":null,"status":"breach","ts":1776132782,"value":0.92425}
+{"check":"saturation.sentiment_backlog","emit_class":"silent","kind":"BREACH","message":"sentiment backlog 1000/1000 (100%) > 50%","metric_key":null,"status":"breach","ts":1776132793,"value":1.0}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776132794,"value":0.0}
+{"check":"latency.pipeline.post","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"post avg lag 41.7s","metric_key":null,"ts":1776132804}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776132886}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776132889}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"clickhouse mem 74.00%","metric_key":null,"ts":1776132891}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.8s","metric_key":null,"ts":1776132908}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 1419.0","metric_key":null,"ts":1776132924}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 8.1s","metric_key":null,"ts":1776132932}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 525.0","metric_key":null,"ts":1776132964}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.0s","metric_key":null,"ts":1776133009}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 8.9s","metric_key":null,"ts":1776133012}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 473.5","metric_key":null,"ts":1776133024}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 84.31% > 80%","metric_key":null,"status":"breach","ts":1776133037,"value":0.84306640625}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 8.0s","metric_key":null,"ts":1776133086}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.0s","metric_key":null,"ts":1776133089}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 58.08%","metric_key":null,"ts":1776133118}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 8.8s","metric_key":null,"ts":1776133147}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133149,"value":10.010478614864866}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776133164,"value":0.0}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.0s","metric_key":null,"ts":1776133169}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 8.6s","metric_key":null,"ts":1776133171}
+{"check":"latency.sentiment.lag","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment avg lag 43.7s","metric_key":null,"ts":1776133172}
+{"check":"saturation.sentiment_backlog","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment backlog 396/1206","metric_key":null,"ts":1776133183}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 107.4","metric_key":null,"ts":1776133204}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 8.8s","metric_key":null,"ts":1776133209}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 8.5s","metric_key":null,"ts":1776133212}
+{"check":"saturation.sentiment_backlog","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment backlog 135/1330","metric_key":null,"ts":1776133224}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 1184.3","metric_key":null,"ts":1776133244}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133249,"value":10.001891323709051}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 85.16% > 80%","metric_key":null,"status":"breach","ts":1776133258,"value":0.8515625}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 138.1","metric_key":null,"ts":1776133265}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.0s","metric_key":null,"ts":1776133269}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 6.3s","metric_key":null,"ts":1776133272}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 48.9","metric_key":null,"ts":1776133304}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133309,"value":10.03653136254502}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 59.16%","metric_key":null,"ts":1776133318}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 7.8s","metric_key":null,"ts":1776133329}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.6s","metric_key":null,"ts":1776133332}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 5.1s","metric_key":null,"ts":1776133369}
+{"check":"latency.pipeline.profile","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"profile avg lag 9.9s","metric_key":null,"ts":1776133371}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776133410,"value":10.052131066326531}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.5s","metric_key":null,"ts":1776133430}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 85.14% > 80%","metric_key":null,"status":"breach","ts":1776133438,"value":0.8513671875}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776133470,"value":10.057722152855996}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 55.00%","metric_key":null,"ts":1776133478}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133493,"value":10.046302673563217}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 6.6s","metric_key":null,"ts":1776133510}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.5s","metric_key":null,"ts":1776133513}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 118.7","metric_key":null,"ts":1776133545}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133550,"value":10.044883693423598}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133573,"value":10.04476195173042}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 55.7","metric_key":null,"ts":1776133586}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 7.6s","metric_key":null,"ts":1776133590}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.7s","metric_key":null,"ts":1776133593}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 89.88% > 80%","metric_key":null,"status":"breach","ts":1776133619,"value":0.898828125}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133630,"value":10.040536198494827}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133633,"value":10.042016165562917}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 60.81%","metric_key":null,"ts":1776133659}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 8.2s","metric_key":null,"ts":1776133675}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.0s","metric_key":null,"ts":1776133678}
+{"check":"saturation.sentiment_backlog","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment backlog 356/1166","metric_key":null,"ts":1776133711}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776133720,"value":10.053334143000002}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133724,"value":10.043562637788016}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 55.82%","metric_key":null,"ts":1776133780}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","kind":"BREACH","message":"seaweedfs mem 80.66% > 80%","metric_key":null,"status":"breach","ts":1776133784,"value":0.806640625}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 10.0s","metric_key":null,"ts":1776133799}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.3s","metric_key":null,"ts":1776133871}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 87.63% > 80%","metric_key":null,"status":"breach","ts":1776133906,"value":0.87626953125}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776133946,"value":10.028679570040486}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 55.74%","metric_key":null,"ts":1776133957}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 13.6s > 10.0s","metric_key":null,"status":"breach","ts":1776133977,"value":13.557851214555766}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","kind":"BREACH","message":"raw_events/s 0.0 < 50.0","metric_key":null,"status":"breach","ts":1776133990,"value":0.0}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776133990,"value":0.0}
+{"check":"traffic.jetstream_input_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"raw_events/s 2471.8","metric_key":null,"ts":1776134067}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 66.0","metric_key":null,"ts":1776134067}
+{"check":"saturation.sentiment_backlog","emit_class":"silent","kind":"BREACH","message":"sentiment backlog 1000/1000 > 500","metric_key":null,"status":"breach","ts":1776134095,"value":1000.0}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 11.6s > 10.0s","metric_key":null,"status":"breach","ts":1776134103,"value":11.552076832352942}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776134107}
+{"check":"latency.pipeline.profile","emit_class":"silent","kind":"BREACH","message":"profile avg lag 11.3s > 10.0s","metric_key":null,"status":"breach","ts":1776134109,"value":11.257621994444444}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.9s","metric_key":null,"ts":1776134128}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134137}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 90.26% > 80%","metric_key":null,"status":"breach","ts":1776134143,"value":0.90263671875}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 364.2","metric_key":null,"ts":1776134151}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 56.96%","metric_key":null,"ts":1776134168}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.6s","metric_key":null,"ts":1776134178}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.0s","metric_key":null,"ts":1776134179}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776134182}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134187}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776134201,"value":0.0}
+{"check":"saturation.mem_ratio.seaweedfs","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"seaweedfs mem 79.28%","metric_key":null,"ts":1776134222}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 548.4","metric_key":null,"ts":1776134226}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.5s > 10.0s","metric_key":null,"status":"breach","ts":1776134228,"value":10.493947816999999}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.6s","metric_key":null,"ts":1776134229}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 13.6s > 10.0s","metric_key":null,"status":"breach","ts":1776134237,"value":13.618325300999997}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 10.0s","metric_key":null,"ts":1776134253}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134262}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 88.23% > 80%","metric_key":null,"status":"breach","ts":1776134268,"value":0.88232421875}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.0s","metric_key":null,"ts":1776134279}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776134282}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 65.31%","metric_key":null,"ts":1776134326}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 14.1s > 10.0s","metric_key":null,"status":"breach","ts":1776134347,"value":14.099619078999998}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 12.0s > 10.0s","metric_key":null,"status":"breach","ts":1776134368,"value":12.044092715000001}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 11.2s > 10.0s","metric_key":null,"status":"breach","ts":1776134370,"value":11.151455389999994}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776134372,"value":10.040496835999999}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.5s","metric_key":null,"ts":1776134398}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.3s","metric_key":null,"ts":1776134399}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776134402}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 96.49% > 80%","metric_key":null,"status":"breach","ts":1776134414,"value":0.96494140625}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 68.58%","metric_key":null,"ts":1776134444}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.2s > 10.0s","metric_key":null,"status":"breach","ts":1776134458,"value":10.202353695999998}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134468}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 586.2","metric_key":null,"ts":1776134483}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.5s","metric_key":null,"ts":1776134488}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776134530,"value":10.027828609999997}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 58.43%","metric_key":null,"ts":1776134543}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.9s","metric_key":null,"ts":1776134554}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 7.1s","metric_key":null,"ts":1776134555}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776134587}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.4s","metric_key":null,"ts":1776134609}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 93.56% > 80%","metric_key":null,"status":"breach","ts":1776134625,"value":0.93564453125}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776134643}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134649}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 60.88%","metric_key":null,"ts":1776134655}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776134669,"value":10.106751069000001}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.8s","metric_key":null,"ts":1776134699}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 96.52% > 80%","metric_key":null,"status":"breach","ts":1776134744,"value":0.965234375}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.9s","metric_key":null,"ts":1776134761}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.1s > 10.0s","metric_key":null,"status":"breach","ts":1776134764,"value":10.066008286999994}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 67.51%","metric_key":null,"ts":1776134776}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776134789,"value":10.047153638999998}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776134793}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134800}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","kind":"BREACH","message":"polaris mem 95.07% > 80%","metric_key":null,"status":"breach","ts":1776134838,"value":0.95068359375}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 67.69%","metric_key":null,"ts":1776134869}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 846.2","metric_key":null,"ts":1776134878}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 76.46%","metric_key":null,"ts":1776134899}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 840.3","metric_key":null,"ts":1776134907}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.0s","metric_key":null,"ts":1776134921}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.7s","metric_key":null,"ts":1776134924}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 11.0s > 10.0s","metric_key":null,"status":"breach","ts":1776134930,"value":10.959229175999994}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.8s","metric_key":null,"ts":1776134956}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776134969}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.2s","metric_key":null,"ts":1776134998}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776135001}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776135052,"value":0.0}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.3s > 10.0s","metric_key":null,"status":"breach","ts":1776135056,"value":10.258104115}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 61.05%","metric_key":null,"ts":1776135075}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776135088}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 12.9s > 10.0s","metric_key":null,"status":"breach","ts":1776135107,"value":12.890457407000001}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 73.97%","metric_key":null,"ts":1776135108}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 8.8s","metric_key":null,"ts":1776135165}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776135174}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.5s","metric_key":null,"ts":1776135233}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.1s","metric_key":null,"ts":1776135235}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776135238}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 450.1","metric_key":null,"ts":1776135260}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 14.9s > 10.0s","metric_key":null,"status":"breach","ts":1776135276,"value":14.925399235}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 62.34%","metric_key":null,"ts":1776135282}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.8s > 10.0s","metric_key":null,"status":"breach","ts":1776135293,"value":10.841862794000003}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776135320,"value":0.0}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.8s","metric_key":null,"ts":1776135336}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 10.0s > 10.0s","metric_key":null,"status":"breach","ts":1776135358,"value":10.035052478999999}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 65.50%","metric_key":null,"ts":1776135372}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.8s","metric_key":null,"ts":1776135383}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776135389}
+{"check":"latency.sentiment.lag","emit_class":"silent","kind":"BREACH","message":"sentiment avg lag 75.7s > 60.0s","metric_key":null,"status":"breach","ts":1776135397,"value":75.74138946700072}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 1004.8","metric_key":null,"ts":1776135411}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 61.88%","metric_key":null,"ts":1776135438}
+{"check":"traffic.sentiment_rps","emit_class":"silent","kind":"BREACH","message":"sentiment rows/s 0.0 < 5.0","metric_key":null,"status":"breach","ts":1776135482,"value":0.0}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 11.1s > 10.0s","metric_key":null,"status":"breach","ts":1776135488,"value":11.145362101000002}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 14.7s > 10.0s","metric_key":null,"status":"breach","ts":1776135503,"value":14.68544636999999}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 54.82%","metric_key":null,"ts":1776135509}
+{"check":"traffic.sentiment_rps","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"sentiment rows/s 1013.1","metric_key":null,"ts":1776135518}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 10.0s","metric_key":null,"ts":1776135537}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 12.1s > 10.0s","metric_key":null,"status":"breach","ts":1776135560,"value":12.070284391000008}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776135564}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.7s","metric_key":null,"ts":1776135595}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.8s","metric_key":null,"ts":1776135661}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.8s","metric_key":null,"ts":1776135684}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776135688}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 65.16%","metric_key":null,"ts":1776135702}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776135731}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 10.6s > 10.0s","metric_key":null,"status":"breach","ts":1776135754,"value":10.634407380999997}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 57.27%","metric_key":null,"ts":1776135773}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.8s","metric_key":null,"ts":1776135787}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 8.9s","metric_key":null,"ts":1776135790}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776135794}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 13.2s > 10.0s","metric_key":null,"status":"breach","ts":1776135837,"value":13.243677495}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 10.5s > 10.0s","metric_key":null,"status":"breach","ts":1776135857,"value":10.511598522999998}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776135872}
+{"check":"saturation.mem_ratio.clickhouse","emit_class":"silent","kind":"BREACH","message":"clickhouse mem 80.27% > 80%","metric_key":null,"status":"breach","ts":1776135875,"value":0.80275}
+{"check":"latency.pipeline.block","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"block avg lag 9.7s","metric_key":null,"ts":1776135895}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 13.6s > 10.0s","metric_key":null,"status":"breach","ts":1776135958,"value":13.625023444999995}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 69.41%","metric_key":null,"ts":1776135965}
+{"check":"latency.pipeline.block","emit_class":"silent","kind":"BREACH","message":"block avg lag 11.4s > 10.0s","metric_key":null,"status":"breach","ts":1776135978,"value":11.403768127999998}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.9s","metric_key":null,"ts":1776135984}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776135993}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 64.06%","metric_key":null,"ts":1776136035}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776136104}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 67.78%","metric_key":null,"ts":1776136111}
+{"check":"latency.pipeline.follow","emit_class":"silent","kind":"BREACH","message":"follow avg lag 12.0s > 10.0s","metric_key":null,"status":"breach","ts":1776136130,"value":11.99476611100001}
+{"check":"latency.pipeline.like","emit_class":"silent","kind":"BREACH","message":"like avg lag 15.1s > 10.0s","metric_key":null,"status":"breach","ts":1776136134,"value":15.050966330000007}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 10.0s","metric_key":null,"ts":1776136212}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 62.30%","metric_key":null,"ts":1776136254}
+{"check":"latency.pipeline.follow","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"follow avg lag 9.9s","metric_key":null,"ts":1776136270}
+{"check":"latency.pipeline.repost","emit_class":"silent","kind":"BREACH","message":"repost avg lag 11.2s > 10.0s","metric_key":null,"status":"breach","ts":1776136284,"value":11.181059815999998}
+{"check":"latency.pipeline.like","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"like avg lag 9.8s","metric_key":null,"ts":1776136311}
+{"check":"latency.pipeline.repost","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"repost avg lag 9.9s","metric_key":null,"ts":1776136320}
+{"check":"saturation.mem_ratio.polaris","emit_class":"silent","from":"breach","kind":"RECOVERY","message":"polaris mem 63.09%","metric_key":null,"ts":1776136326}

@@ -32,7 +32,7 @@ The project is **mid-migration** from a custom `query-api` (FastAPI + PySpark + 
 - `clickhouse` service is live in `docker-compose.yml`; the init container provisions a Polaris reader principal and the `polaris_catalog` ClickHouse database.
 - **Outstanding work:** Grafana datasource plugin swap, dashboard panel rewrites against ClickHouse, and smoke-test updates.
 
-A Python monitor — **Heimdall** — is also in progress under `scripts/heimdall/`. It runs a decorator-based check registry organized in a three-layer gated model: L1 machine health → L2 operational fidelity (Spark streaming metrics via Dropwizard `/metrics/json`) → L3 data fidelity (deferred). Higher layers short-circuit when a lower layer breaches. State persists in a DuckDB `:memory:` store backed by a JSONL write-ahead log at `logs/heimdall-wal.jsonl`. L1+L2 (18 checks) is the current ship target; L3 data-quality + Iceberg-hygiene modules stay on disk until the DuckDB-embedded Iceberg reader lands in a follow-up.
+A Python monitor — **Heimdall** — is also in progress under `scripts/heimdall/`. It runs a decorator-based check registry organized in a three-layer gated model: L1 machine health → L2 operational health (Spark streaming metrics via Dropwizard `/metrics/json`) → L3 data fidelity (deferred). Higher layers short-circuit when a lower layer breaches. State persists in a DuckDB `:memory:` store backed by a JSONL write-ahead log at `logs/heimdall-wal.jsonl`. L1+L2 (18 checks) is the current ship target; L3 data-quality + Iceberg-hygiene modules stay on disk until the DuckDB-embedded Iceberg reader lands in a follow-up.
 
 Public dashboard access via Cloudflare Tunnel is a planned follow-on once the ClickHouse migration completes.
 
@@ -57,7 +57,7 @@ Public dashboard access via Cloudflare Tunnel is a planned follow-on once the Cl
 - **Medallion architecture** — Raw (JSON) → Staging (6 typed tables) → Core (enriched + extracted) → Mart (10 materialized aggregates + 1 query-time view)
 - **GPU sentiment analysis** — XLM-RoBERTa baked into a CUDA Spark image, batch inference via `mapInPandas`
 - **Iceberg-native query serving** — ClickHouse reads Iceberg directly through Polaris, no Spark-driver-on-the-query-path
-- **Heimdall monitor** — decorator-based Python check registry with a three-layer gated model (machine health → operational fidelity → data fidelity), DuckDB-in-memory state, and a crash-recoverable JSONL write-ahead log
+- **Heimdall monitor** — decorator-based Python check registry with a three-layer gated model (machine health → operational health → data fidelity), DuckDB-in-memory state, and a crash-recoverable JSONL write-ahead log
 
 ## Project Structure
 
@@ -121,7 +121,6 @@ Once running, open Grafana at [http://localhost:3000](http://localhost:3000). Da
 | `make clean` | Full teardown (containers + volumes) |
 | `make smoke-test` | Run end-to-end acceptance suite (waits for data) |
 | `make reset-checkpoint LAYER=<layer>` | Wipe a layer's Spark checkpoint state |
-| `make replay TIME=<timestamp>` | Replay Jetstream from a cursor |
 | `make heimdall` | Launch the Heimdall TUI (primary monitor interface) |
 | `make heimdall-run` | One-shot Heimdall check cycle |
 | `make heimdall-watch` | Headless Heimdall watch loop |

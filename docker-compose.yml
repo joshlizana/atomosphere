@@ -133,7 +133,7 @@ services:
     networks:
       - atmosphere-data
       - atmosphere-frontend
-    mem_limit: 2g
+    mem_limit: 4g
     restart: unless-stopped
 
   # --- Init Container ---
@@ -181,7 +181,6 @@ services:
         exec /opt/spark/bin/spark-submit \
           --master local[*] \
           --conf spark.sql.catalog.atmosphere.credential=$$POLARIS_ROOT_USER:$$POLARIS_ROOT_PASSWORD \
-          --conf spark.executorEnv.JETSTREAM_CURSOR=$$JETSTREAM_CURSOR \
           /opt/spark/work-dir/spark/unified.py
     ports:
       - "4040:4040"
@@ -194,7 +193,6 @@ services:
       CLICKHOUSE_HOST: http://clickhouse:8123
       CLICKHOUSE_ADMIN_USER: ${CLICKHOUSE_ADMIN_USER}
       CLICKHOUSE_ADMIN_PASSWORD: ${CLICKHOUSE_ADMIN_PASSWORD}
-      JETSTREAM_CURSOR: ${JETSTREAM_CURSOR:-}
     volumes:
       - spark-checkpoints:/opt/spark/checkpoints
       - ./spark/conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro

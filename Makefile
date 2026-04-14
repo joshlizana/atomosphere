@@ -1,13 +1,7 @@
-.PHONY: up down logs status clean smoke-test reset-checkpoint replay heimdall heimdall-run heimdall-watch
+.PHONY: up down logs status clean smoke-test reset-checkpoint heimdall heimdall-run heimdall-watch
 
 up:
-	@# Inject a Jetstream cursor 1h in the past so fresh starts replay
-	@# enough backlog to exercise the pipeline under sustained load. On
-	@# restart (checkpoint already in the spark-checkpoints volume), the
-	@# checkpoint wins and this env cursor is ignored — see the resolution
-	@# order in spark/sources/jetstream_source.py.
-	JETSTREAM_CURSOR=$$(( ($$(date +%s) - 3600) * 1000000 )) \
-		docker compose up -d --build
+	docker compose up -d --build
 	@echo "\n=== Waiting for init to complete ==="
 	@docker wait init >/dev/null 2>&1 || true
 	@docker compose logs init
@@ -31,11 +25,6 @@ reset-checkpoint:
 	@echo "Usage: make reset-checkpoint LAYER=<layer>"
 	@echo "  e.g. make reset-checkpoint LAYER=staging"
 	@test -n "$(LAYER)" && ./scripts/reset-checkpoint.sh $(LAYER) || true
-
-replay:
-	@echo "Usage: make replay TIME=<timestamp>"
-	@echo "  e.g. make replay TIME=-1h"
-	@test -n "$(TIME)" && ./scripts/replay.sh $(TIME) || true
 
 smoke-test:
 	./scripts/smoke-test.sh --wait

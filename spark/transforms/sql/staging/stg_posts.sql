@@ -25,6 +25,7 @@ SELECT
     get_json_object(raw_json, '$.commit.record.reply.parent.uri')           AS reply_parent_uri,
     get_json_object(raw_json, '$.commit.record.facets')                     AS facets_json,
     get_json_object(raw_json, '$.commit.record.labels')                     AS labels_json,
-    from_json(get_json_object(raw_json, '$.commit.record.tags'), 'ARRAY<STRING>') AS tags
+    from_json(get_json_object(raw_json, '$.commit.record.tags'), 'ARRAY<STRING>') AS tags,
+    current_timestamp()                                                     AS ingested_at
 FROM {source}
 WHERE collection = 'app.bsky.feed.post'

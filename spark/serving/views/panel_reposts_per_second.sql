@@ -1,7 +1,6 @@
 CREATE OR REPLACE VIEW atmosphere.panel_reposts_per_second AS
 SELECT
     bucket                              AS window_start,
-    'reposts'                           AS metric,
     count / 10.0                        AS events_per_second
 FROM atmosphere.mart_engagement_velocity
 WHERE event_type = 'repost'

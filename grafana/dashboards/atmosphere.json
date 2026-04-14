@@ -22,6 +22,7 @@
     },
     {
       "id": 1,
+      "interval": "30s",
       "title": "Rolling Sentiment Score",
       "description": "Positive/negative/neutral sentiment averages over 5-second windows",
       "type": "timeseries",
@@ -142,6 +143,7 @@
     },
     {
       "id": 2,
+      "interval": "30s",
       "title": "Current Sentiment",
       "description": "Dominant sentiment label across today's scored posts",
       "type": "stat",
@@ -165,9 +167,21 @@
             {
               "type": "value",
               "options": {
-                "positive": { "text": "POSITIVE", "color": "green", "index": 0 },
-                "negative": { "text": "NEGATIVE", "color": "red", "index": 1 },
-                "neutral":  { "text": "NEUTRAL",  "color": "yellow", "index": 2 }
+                "positive": {
+                  "text": "POSITIVE",
+                  "color": "green",
+                  "index": 0
+                },
+                "negative": {
+                  "text": "NEGATIVE",
+                  "color": "red",
+                  "index": 1
+                },
+                "neutral": {
+                  "text": "NEUTRAL",
+                  "color": "yellow",
+                  "index": 2
+                }
               }
             }
           ]
@@ -203,6 +217,7 @@
     },
     {
       "id": 3,
+      "interval": "30s",
       "title": "Top 5 Most Positive Posts",
       "description": "Recent posts ranked by positive sentiment score",
       "type": "table",
@@ -287,6 +302,7 @@
     },
     {
       "id": 4,
+      "interval": "30s",
       "title": "Top 5 Most Negative Posts",
       "description": "Recent posts ranked by negative sentiment score",
       "type": "table",
@@ -383,6 +399,7 @@
     },
     {
       "id": 5,
+      "interval": "30s",
       "title": "Events/sec by Collection",
       "description": "Event throughput grouped by Bluesky collection type",
       "type": "timeseries",
@@ -456,6 +473,7 @@
     },
     {
       "id": 6,
+      "interval": "30s",
       "title": "Operations Breakdown",
       "description": "Create, update, and delete operations over time",
       "type": "timeseries",
@@ -524,6 +542,7 @@
     },
     {
       "id": 7,
+      "interval": "30s",
       "title": "Active Users (5 min)",
       "description": "Approximate distinct DIDs active in the last 5 minutes (per-minute approx_count_distinct, summed)",
       "type": "stat",
@@ -584,6 +603,7 @@
     },
     {
       "id": 8,
+      "interval": "30s",
       "title": "Total Events (5 min)",
       "description": "Total events ingested in the last 5 minutes",
       "type": "stat",
@@ -656,6 +676,7 @@
     },
     {
       "id": 9,
+      "interval": "30s",
       "title": "Language Distribution",
       "description": "Top languages by post count in the last 5 minutes",
       "type": "piechart",
@@ -679,9 +700,9 @@
       },
       "options": {
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ]
+          "values": true,
+          "calcs": [],
+          "fields": "/^post_count$/"
         },
         "pieType": "donut",
         "legend": {
@@ -712,9 +733,10 @@
     },
     {
       "id": 10,
+      "interval": "30s",
       "title": "Post Type Ratio",
       "description": "Distribution of post types: original, reply, quote, media",
-      "type": "barchart",
+      "type": "piechart",
       "gridPos": {
         "h": 8,
         "w": 6,
@@ -729,21 +751,24 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "fillOpacity": 80,
-            "gradientMode": "hue"
           }
         },
         "overrides": []
       },
       "options": {
-        "orientation": "horizontal",
-        "xTickLabelRotation": 0,
-        "showValue": "always",
+        "reduceOptions": {
+          "values": true,
+          "calcs": [],
+          "fields": "/^post_count$/"
+        },
+        "pieType": "donut",
         "legend": {
-          "displayMode": "hidden"
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
         },
         "tooltip": {
           "mode": "single"
@@ -765,9 +790,10 @@
     },
     {
       "id": 11,
+      "interval": "30s",
       "title": "Embed Usage",
       "description": "Distribution of embed types: text-only, images, links, video, etc.",
-      "type": "barchart",
+      "type": "piechart",
       "gridPos": {
         "h": 8,
         "w": 6,
@@ -782,21 +808,24 @@
         "defaults": {
           "color": {
             "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "fillOpacity": 80,
-            "gradientMode": "hue"
           }
         },
         "overrides": []
       },
       "options": {
-        "orientation": "horizontal",
-        "xTickLabelRotation": 0,
-        "showValue": "always",
+        "reduceOptions": {
+          "values": true,
+          "calcs": [],
+          "fields": "/^post_count$/"
+        },
+        "pieType": "donut",
         "legend": {
-          "displayMode": "hidden"
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
         },
         "tooltip": {
           "mode": "single"
@@ -818,6 +847,7 @@
     },
     {
       "id": 12,
+      "interval": "30s",
       "title": "Trending Hashtags",
       "description": "Top hashtags by spike ratio (current 5-min count vs 30-min baseline)",
       "type": "table",
@@ -975,9 +1005,10 @@
     },
     {
       "id": 13,
+      "interval": "30s",
       "title": "Likes per Second",
-      "description": "Like events per second over 5-second windows",
-      "type": "timeseries",
+      "description": "Current like throughput (events per second over last 10s bucket)",
+      "type": "stat",
       "gridPos": {
         "h": 8,
         "w": 6,
@@ -991,31 +1022,25 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "red",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisLabel": "likes/sec",
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "scheme",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": true
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "unit": "ops"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "hidden"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^events_per_second$/"
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -1027,15 +1052,16 @@
           "editorType": "sql",
           "queryType": "table",
           "rawSql": "SELECT * FROM atmosphere.panel_likes_per_second",
-          "format": 0
+          "format": 1
         }
       ]
     },
     {
       "id": 14,
+      "interval": "30s",
       "title": "Reposts per Second",
-      "description": "Repost events per second over 5-second windows",
-      "type": "timeseries",
+      "description": "Current repost throughput (events per second over last 10s bucket)",
+      "type": "stat",
       "gridPos": {
         "h": 8,
         "w": 6,
@@ -1049,31 +1075,25 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "blue",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisLabel": "reposts/sec",
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "scheme",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": true
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "unit": "ops"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "hidden"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^events_per_second$/"
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -1085,15 +1105,16 @@
           "editorType": "sql",
           "queryType": "table",
           "rawSql": "SELECT * FROM atmosphere.panel_reposts_per_second",
-          "format": 0
+          "format": 1
         }
       ]
     },
     {
       "id": 15,
-      "title": "Follow/Unfollow Rate",
-      "description": "Follow events per second over 5-second windows",
-      "type": "timeseries",
+      "interval": "30s",
+      "title": "Follows per Second",
+      "description": "Follow events per second over 10-second windows (last 60 minutes)",
+      "type": "stat",
       "gridPos": {
         "h": 8,
         "w": 6,
@@ -1107,31 +1128,25 @@
       "fieldConfig": {
         "defaults": {
           "color": {
-            "fixedColor": "green",
-            "mode": "fixed"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisLabel": "follows/sec",
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "scheme",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "showPoints": "never",
-            "spanNulls": true
+            "mode": "fixed",
+            "fixedColor": "blue"
           },
           "unit": "ops"
         },
         "overrides": []
       },
       "options": {
-        "legend": {
-          "displayMode": "hidden"
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^events_per_second$/"
         },
-        "tooltip": {
-          "mode": "single"
-        }
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value",
+        "justifyMode": "auto",
+        "orientation": "auto"
       },
       "targets": [
         {
@@ -1143,12 +1158,13 @@
           "editorType": "sql",
           "queryType": "table",
           "rawSql": "SELECT * FROM atmosphere.panel_follows_per_second",
-          "format": 0
+          "format": 1
         }
       ]
     },
     {
       "id": 16,
+      "interval": "30s",
       "title": "Most Mentioned Accounts",
       "description": "Top 20 most mentioned DIDs in the last 5 minutes",
       "type": "table",
@@ -1240,6 +1256,7 @@
     },
     {
       "id": 17,
+      "interval": "30s",
       "title": "Events Ingested/sec",
       "description": "Current ingestion throughput (events per second over last minute)",
       "type": "stat",
@@ -1288,7 +1305,7 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "justifyMode": "auto",
         "orientation": "auto"
       },
@@ -1308,6 +1325,7 @@
     },
     {
       "id": 18,
+      "interval": "30s",
       "title": "Processing Lag",
       "description": "Time difference between current time and latest ingested event",
       "type": "stat",
@@ -1356,7 +1374,7 @@
         },
         "colorMode": "background",
         "graphMode": "area",
-        "textMode": "value_and_name",
+        "textMode": "value",
         "justifyMode": "auto",
         "orientation": "auto"
       },
@@ -1376,6 +1394,7 @@
     },
     {
       "id": 19,
+      "interval": "30s",
       "title": "Last Batch Timestamp",
       "description": "Most recent event and measurement timestamps",
       "type": "table",
@@ -1488,7 +1507,7 @@
       ]
     }
   ],
-  "refresh": "5s",
+  "refresh": "30s",
   "schemaVersion": 39,
   "tags": [
     "atmosphere",

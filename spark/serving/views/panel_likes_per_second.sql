@@ -1,7 +1,6 @@
 CREATE OR REPLACE VIEW atmosphere.panel_likes_per_second AS
 SELECT
     bucket                              AS window_start,
-    'likes'                             AS metric,
     count / 10.0                        AS events_per_second
 FROM atmosphere.mart_engagement_velocity
 WHERE event_type = 'like'
